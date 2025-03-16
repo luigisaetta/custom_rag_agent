@@ -14,12 +14,12 @@ from agent_state import State
 from oci_models import get_llm
 from prompts import (
     ANSWER_PROMPT_TEMPLATE,
-    REFORMULATE_PROMPT_TEMPLATE,
 )
+from query_rewriter import QueryRewriter
 from vector_search import SemanticSearch
 from reranker import Reranker
 from utils import get_console_logger
-from config import DEBUG, AGENT_NAME
+from config import AGENT_NAME
 
 logger = get_console_logger()
 
@@ -44,46 +44,6 @@ def build_context_for_llm(docs: list):
 #
 # Node functions
 #
-@zipkin_span(service_name=AGENT_NAME, span_name="reformulate_question")
-def reformulate_question(state: State):
-    """
-    Reformulate the question in a standalone question, using the chat_history
-    """
-    user_request = state["user_request"]
-    error = None
-
-    if len(state["chat_history"]) > 0:
-        logger.info("Reformulating the question...")
-
-        try:
-            llm = get_llm(temperature=0)
-
-            _prompt_template = PromptTemplate(
-                input_variables=["user_request", "chat_history"],
-                template=REFORMULATE_PROMPT_TEMPLATE,
-            )
-
-            prompt = _prompt_template.format(
-                user_request=user_request, chat_history=state["chat_history"]
-            )
-
-            messages = [
-                HumanMessage(content=prompt),
-            ]
-
-            standalone_question = llm.invoke(messages).content
-
-            if DEBUG:
-                logger.info("Standalone question: %s", standalone_question)
-        except Exception as e:
-            logger.error("Error in reformulate_question: %s", e)
-            error = str(e)
-    else:
-        standalone_question = user_request
-
-    return {"standalone_question": standalone_question, "error": error}
-
-
 @zipkin_span(service_name=AGENT_NAME, span_name="generate_answer")
 def generate_answer(state: State):
     """
@@ -91,7 +51,6 @@ def generate_answer(state: State):
     """
     final_answer = ""
     error = None
-    citation_links = []
 
     try:
         llm = get_llm()
@@ -131,18 +90,19 @@ def create_workflow():
     workflow = StateGraph(State)
 
     # create nodes
+    query_rewriter = QueryRewriter()
     semantic_search = SemanticSearch()
     reranker = Reranker()
 
     # Add nodes
-    workflow.add_node("ReformulateQuestion", reformulate_question)
+    workflow.add_node("QueryRewrite", query_rewriter)
     workflow.add_node("Search", semantic_search)
     workflow.add_node("Rerank", reranker)
     workflow.add_node("Answer", generate_answer)
 
     # define edges
-    workflow.add_edge(START, "ReformulateQuestion")
-    workflow.add_edge("ReformulateQuestion", "Search")
+    workflow.add_edge(START, "QueryRewrite")
+    workflow.add_edge("QueryRewrite", "Search")
     workflow.add_edge("Search", "Rerank")
     workflow.add_edge("Rerank", "Answer")
     workflow.add_edge("Answer", END)
