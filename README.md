@@ -12,7 +12,7 @@ Design decisions:
 * UI implemented with **Streamlit**
 
 Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
-For example links to the documentation' chunks are displayed before the final answer.
+For example, links to the documentation' chunks are displayed before the final answer is ready.
 
 ## Status
 It is a PoC. It is **wip**.
