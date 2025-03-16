@@ -5,7 +5,9 @@ to enable tracing to APM
 
 import requests
 from utils import get_console_logger
-from config import APM_PUBLIC_KEY, APM_BASE_URL, APM_CONTENT_TYPE, ENABLE_TRACING
+from config import APM_BASE_URL, APM_CONTENT_TYPE, ENABLE_TRACING
+
+from config_private import APM_PUBLIC_KEY
 
 
 logger = get_console_logger()
