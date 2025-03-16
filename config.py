@@ -32,4 +32,4 @@ AGENT_NAME = "OCI_CUSTOM_RAG_AGENT"
 ENABLE_TRACING = True
 APM_BASE_URL = "https://aaaadec2jjn3maaaaaaaaach4e.apm-agt.eu-frankfurt-1.oci.oraclecloud.com/20200101"
 APM_CONTENT_TYPE = "application/json"
-APM_PUBLIC_KEY = "6OXZ45BTT5AHD5KYICGOMLXXAZYTTLGT"
+
