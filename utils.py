@@ -4,6 +4,7 @@ Utils
 
 import logging
 import re
+import json
 
 
 def get_console_logger():
@@ -49,3 +50,26 @@ def extract_text_triple_backticks(_text):
         _result = _text
 
     return _result
+
+
+def extract_json_from_text(text):
+    """
+    Extracts JSON content from a given text and returns it as a Python dictionary.
+
+    Args:
+        text (str): The input text containing JSON content.
+
+    Returns:
+        dict: Parsed JSON data.
+    """
+    try:
+        # Use regex to extract JSON content
+        json_match = re.search(r"\{.*\}", text, re.DOTALL)
+        if json_match:
+            json_content = json_match.group(0)
+            return json.loads(json_content)
+
+        # If no JSON content is found, raise an error
+        raise ValueError("No JSON content found in the text.")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {e}")

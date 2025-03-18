@@ -14,7 +14,7 @@ from prompts import (
     RERANKER_TEMPLATE,
 )
 from oci_models import get_llm
-from utils import get_console_logger
+from utils import get_console_logger, extract_json_from_text
 from config import DEBUG, ENABLE_RERANKER, AGENT_NAME
 
 logger = get_console_logger()
@@ -67,29 +67,46 @@ class Reranker(Runnable):
             retriever_docs = input["retriever_docs"]
             # create the chunks list
             if len(retriever_docs) > 0:
-                chunks = []
-                for doc in retriever_docs:
-                    chunks.append(doc.page_content)
-
-                _prompt = PromptTemplate(
-                    input_variables=["user_request", "chunks"],
-                    template=RERANKER_TEMPLATE,
-                ).format(user_request=user_request, chunks=chunks)
-
-                messages = [
-                    HumanMessage(content=_prompt),
-                ]
-
                 if ENABLE_RERANKER:
+                    # create the chunks texts list
+                    chunks = []
+                    for doc in retriever_docs:
+                        chunks.append(doc.page_content)
+
+                    _prompt = PromptTemplate(
+                        input_variables=["user_request", "chunks"],
+                        template=RERANKER_TEMPLATE,
+                    ).format(user_request=user_request, chunks=chunks)
+
+                    messages = [
+                        HumanMessage(content=_prompt),
+                    ]
+
                     reranker_output = llm.invoke(messages).content
 
-                    logger.info(reranker_output)
+                    json_dict = extract_json_from_text(reranker_output)
+
+                    if DEBUG:
+                        logger.info(json_dict["ranked_chunks"])
+
+                    # get the indexes
+                    indexes = [
+                        chunk["index"] for chunk in json_dict.get("ranked_chunks", [])
+                    ]
+
+                    reranked_docs = [retriever_docs[i] for i in indexes]
+                else:
+                    reranked_docs = retriever_docs
+            else:
+                reranked_docs = []
 
         except Exception as e:
-            logger.error("Error in generate_answer: %s", e)
+            logger.error("Error in reranker: %s", e)
             error = str(e)
 
-        # get the references
-        citations = self.generate_refs(retriever_docs)
+            reranked_docs = retriever_docs
 
-        return {"reranker_docs": retriever_docs, "citations": citations, "error": error}
+        # get the references
+        citations = self.generate_refs(reranked_docs)
+
+        return {"reranker_docs": reranked_docs, "citations": citations, "error": error}
