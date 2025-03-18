@@ -46,14 +46,17 @@ class Reranker(Runnable):
     def get_reranked_docs(llm, query, retriever_docs):
         """
         Rerank documents using LLM based on user request.
+
+        query: the search query (can be reformulated)
+        retriever_docs: list of Langchain Documents
         """
         # Prepare chunk texts
         chunks = [doc.page_content for doc in retriever_docs]
 
         _prompt = PromptTemplate(
-            input_variables=["user_request", "chunks"],
+            input_variables=["query", "chunks"],
             template=RERANKER_TEMPLATE,
-        ).format(user_request=query, chunks=chunks)
+        ).format(query=query, chunks=chunks)
 
         messages = [HumanMessage(content=_prompt)]
         reranker_output = llm.invoke(messages).content

@@ -52,7 +52,7 @@ Your goal is to:
 
 ### Input Format:
 User Query:
-{user_request}
+{query}
 
 Text Chunks (list indexed from 0):
 {chunks}
