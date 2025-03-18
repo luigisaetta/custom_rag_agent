@@ -4,6 +4,7 @@ This repository contains all the code for the development of a **custom RAG Agen
 ## Design and implementation
 * The agent is implemented using **LangGraph**
 * Vector Search is implemented, using Langchain, on top of Oracle 23AI
+* (Optional) A **reranker**, implemented using an LLM, can be used to refine the search
 
 Design decisions:
 * For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
@@ -15,7 +16,7 @@ Support for streaming events from the agent: as soon as a step is completed (Vec
 For example, links to the documentation' chunks are displayed before the final answer is ready.
 
 ## Status
-It is a PoC. It is **wip**.
+It is **wip**.
 
 ## References
 [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)

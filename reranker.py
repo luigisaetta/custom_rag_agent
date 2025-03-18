@@ -50,7 +50,7 @@ class Reranker(Runnable):
     @zipkin_span(service_name=AGENT_NAME, span_name="reranking")
     def invoke(self, input: State, config=None, **kwargs):
         """
-        This method invokes the reranker
+        This method implements the reranking logic
 
         input: the agent state
         """
