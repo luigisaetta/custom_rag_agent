@@ -27,7 +27,7 @@ SERVICE_ENDPOINT = "https://inference.generativeai.eu-frankfurt-1.oci.oracleclou
 MAX_MSGS_IN_HISTORY = 6
 
 # reranking
-ENABLE_RERANKER = False
+ENABLE_RERANKER = True
 
 # Integration with APM
 AGENT_NAME = "OCI_CUSTOM_RAG_AGENT"
