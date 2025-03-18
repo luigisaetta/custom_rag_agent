@@ -2,6 +2,8 @@
 Reranker
 """
 
+# Import traceback for better error logging
+import traceback
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
 from langchain.prompts import PromptTemplate
@@ -29,84 +31,79 @@ class Reranker(Runnable):
         """
         Init
         """
+        super().__init__()
 
     def generate_refs(self, docs: list):
         """
-        Return the list of refs, used in the reranker
+        Returns a list of reference dictionaries used in the reranker.
         """
-        # generate references
-        citation_links = []
+        return [
+            {"source": doc.metadata["source"], "page_label": doc.metadata["page_label"]}
+            for doc in docs
+        ]
 
-        for doc in docs:
-            citation_links.append(
-                {
-                    "source": doc.metadata["source"],
-                    "page_label": doc.metadata["page_label"],
-                }
-            )
+    @staticmethod
+    def get_reranked_docs(llm, query, retriever_docs):
+        """
+        Rerank documents using LLM based on user request.
+        """
+        # Prepare chunk texts
+        chunks = [doc.page_content for doc in retriever_docs]
 
-        return citation_links
+        _prompt = PromptTemplate(
+            input_variables=["user_request", "chunks"],
+            template=RERANKER_TEMPLATE,
+        ).format(user_request=query, chunks=chunks)
+
+        messages = [HumanMessage(content=_prompt)]
+        reranker_output = llm.invoke(messages).content
+
+        # Extract ranking order
+        json_dict = extract_json_from_text(reranker_output)
+
+        if DEBUG:
+            logger.info(json_dict.get("ranked_chunks", "No ranked chunks found."))
+
+        # Get indexes and sort documents
+        indexes = [chunk["index"] for chunk in json_dict.get("ranked_chunks", [])]
+
+        return [retriever_docs[i] for i in indexes]
 
     @zipkin_span(service_name=AGENT_NAME, span_name="reranking")
     def invoke(self, input: State, config=None, **kwargs):
         """
-        This method implements the reranking logic
+        Implements reranking logic.
 
-        input: the agent state
+        input: The agent state.
         """
-        user_request = input["standalone_question"]
+        user_request = input.get("standalone_question", "")
+        retriever_docs = input.get("retriever_docs", [])
         error = None
 
         if DEBUG:
-            logger.info("Reranker input state:")
-            logger.info(input)
+            logger.info("Reranker input state: %s", input)
 
         try:
             llm = get_llm(temperature=0.0, max_tokens=4000)
 
-            retriever_docs = input["retriever_docs"]
-            # create the chunks list
-            if len(retriever_docs) > 0:
-                if ENABLE_RERANKER:
-                    # create the chunks texts list
-                    chunks = []
-                    for doc in retriever_docs:
-                        chunks.append(doc.page_content)
-
-                    _prompt = PromptTemplate(
-                        input_variables=["user_request", "chunks"],
-                        template=RERANKER_TEMPLATE,
-                    ).format(user_request=user_request, chunks=chunks)
-
-                    messages = [
-                        HumanMessage(content=_prompt),
-                    ]
-
-                    reranker_output = llm.invoke(messages).content
-
-                    json_dict = extract_json_from_text(reranker_output)
-
-                    if DEBUG:
-                        logger.info(json_dict["ranked_chunks"])
-
-                    # get the indexes
-                    indexes = [
-                        chunk["index"] for chunk in json_dict.get("ranked_chunks", [])
-                    ]
-
-                    reranked_docs = [retriever_docs[i] for i in indexes]
-                else:
-                    reranked_docs = retriever_docs
+            if retriever_docs:
+                reranked_docs = (
+                    self.get_reranked_docs(llm, user_request, retriever_docs)
+                    if ENABLE_RERANKER
+                    else retriever_docs
+                )
             else:
                 reranked_docs = []
 
         except Exception as e:
             logger.error("Error in reranker: %s", e)
+            logger.debug(
+                traceback.format_exc()
+            )  # Log the full stack trace for debugging
             error = str(e)
+            reranked_docs = retriever_docs  # Fallback to original documents
 
-            reranked_docs = retriever_docs
-
-        # get the references
+        # Get reference citations
         citations = self.generate_refs(reranked_docs)
 
         return {"reranker_docs": reranked_docs, "citations": citations, "error": error}
