@@ -43,6 +43,7 @@ def create_workflow():
 
     # create workflow executor
     memory = MemorySaver()
-    workflow_app = workflow.compile(checkpointer=memory)
+    # disabled for now
+    workflow_app = workflow.compile()  # checkpointer=memory)
 
     return workflow_app

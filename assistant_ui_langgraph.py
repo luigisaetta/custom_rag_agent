@@ -105,7 +105,6 @@ model_id = st.sidebar.selectbox("Select the Chat Model", ["meta.llama3.3-70B"])
 ENABLE_RERANKER = st.sidebar.checkbox("Enable Reranker", value=True, disabled=True)
 
 
-
 #
 # Here the code where react to user input
 #
@@ -146,8 +145,8 @@ if question := st.chat_input("Hello, how can I help you?"):
                 ) as span:
                     # loop to manage streaming
                     for event in st.session_state.workflow.stream(
-                        input_state, 
-                        config=st.session_state.agent_config,
+                        input_state,
+                        # config=st.session_state.agent_config,
                     ):
                         for key, value in event.items():
                             MSG = f"Completed: {key}!"
@@ -169,17 +168,25 @@ if question := st.chat_input("Hello, how can I help you?"):
                 # process final result from agent
                 if ERROR is None:
                     # visualize the output
-                    answer = results[-1]["final_answer"]
+                    answer_generator = results[-1]["final_answer"]
 
+                    # Stream
                     with st.chat_message(ASSISTANT):
-                        st.markdown(answer)
+                        response_container = st.empty()
+                        full_response = ""
+
+                        for chunk in answer_generator:
+                            full_response += chunk.content
+                            response_container.markdown(full_response + "▌")
+
+                        response_container.markdown(full_response)
 
                 else:
                     st.error(ERROR)
 
                 # Add user/assistant message to chat history
                 add_to_chat_history(HumanMessage(content=question))
-                add_to_chat_history(AIMessage(content=answer))
+                add_to_chat_history(AIMessage(content=full_response))
 
             except Exception as e:
                 ERR_MSG = f"Error in assistant_ui, generate_and_exec {e}"

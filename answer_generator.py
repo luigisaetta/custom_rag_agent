@@ -2,6 +2,8 @@
 AnswerGenerator
 
 Using the LLM and the provided context generate the answer to the user request
+
+19/03: updated to stream the answer generation
 """
 
 from langchain_core.runnables import Runnable
@@ -76,8 +78,8 @@ class AnswerGenerator(Runnable):
 
             messages.append(HumanMessage(content=input["user_request"]))
 
-            # here we invoke the LLM
-            final_answer = llm.invoke(messages).content
+            # here we invoke the LLM and we return the generator
+            final_answer = llm.stream(messages)
 
         except Exception as e:
             logger.error("Error in generate_answer: %s", e)
