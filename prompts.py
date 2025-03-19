@@ -69,8 +69,7 @@ Return a **JSON object** with the following format:
 }}
 ```
 Where:
-- "index" is the original position of the chunk in the input list.
-- "text" is the content of the relevant chunk.
+- "index" is the original position of the chunk in the input list. Index starts from 0.
 - "score" is the relevance score (higher is better).
 
 Ensure that only relevant chunks are included in the output. If no chunk is relevant, return an empty list.

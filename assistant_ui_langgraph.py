@@ -102,13 +102,13 @@ st.sidebar.header("Options")
 
 # add the choice of LLM (not used for now)
 model_id = st.sidebar.selectbox("Select the Chat Model", ["meta.llama3.3-70B"])
+ENABLE_RERANKER = st.sidebar.checkbox("Enable Reranker", value=True, disabled=True)
 
-st.sidebar.header("References")
+
 
 #
 # Here the code where react to user input
 #
-
 
 # Display chat messages from history on app rerun
 display_msg_on_rerun(get_chat_history())
@@ -146,7 +146,8 @@ if question := st.chat_input("Hello, how can I help you?"):
                 ) as span:
                     # loop to manage streaming
                     for event in st.session_state.workflow.stream(
-                        input_state, config=st.session_state.agent_config
+                        input_state, 
+                        config=st.session_state.agent_config,
                     ):
                         for key, value in event.items():
                             MSG = f"Completed: {key}!"
@@ -158,7 +159,11 @@ if question := st.chat_input("Hello, how can I help you?"):
                             ERROR = value["error"]
 
                             # update UI asap
+                            if key == "QueryRewrite":
+                                st.sidebar.header("Standalone question:")
+                                st.sidebar.write(value["standalone_question"])
                             if key == "Rerank":
+                                st.sidebar.header("References:")
                                 st.sidebar.write(value["citations"])
 
                 # process final result from agent

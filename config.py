@@ -31,7 +31,7 @@ ENABLE_RERANKER = True
 
 # Integration with APM
 AGENT_NAME = "OCI_CUSTOM_RAG_AGENT"
-ENABLE_TRACING = True
+ENABLE_TRACING = False
 
 # lsaetta-apm compartment
 APM_BASE_URL = "https://aaaadec2jjn3maaaaaaaaach4e.apm-agt.eu-frankfurt-1.oci.oraclecloud.com/20200101"

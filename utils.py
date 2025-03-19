@@ -63,7 +63,7 @@ def extract_json_from_text(text):
         dict: Parsed JSON data.
     """
     try:
-        # Use regex to extract JSON content
+        # Use regex to extract JSON content (contained between {})
         json_match = re.search(r"\{.*\}", text, re.DOTALL)
         if json_match:
             json_content = json_match.group(0)
