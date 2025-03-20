@@ -12,7 +12,7 @@ Design decisions:
 * The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
 * UI implemented with **Streamlit**
 
-
+Streaming:
 * Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
 For example, links to the documentation' chunks are displayed before the final answer is ready.
 * Streaming of the final answer.
