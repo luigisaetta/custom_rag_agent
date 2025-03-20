@@ -17,13 +17,15 @@ MAX_TOKENS = 1024
 
 # semantic search
 TOP_K = 6
-COLLECTION_NAME = "CNAF"
+# COLLECTION_NAME = "CNAF"
+COLLECTION_NAME = "BOOKS"
 
 # OCI general
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
 SERVICE_ENDPOINT = "https://inference.generativeai.eu-frankfurt-1.oci.oraclecloud.com"
 
-# history management
+# history management (put -1 if you want to disable trimming)
+# consider that we have pair (human, ai) so use an even (ex: 6) value
 MAX_MSGS_IN_HISTORY = 6
 
 # reranking

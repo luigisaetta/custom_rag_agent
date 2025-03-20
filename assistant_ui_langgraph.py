@@ -35,7 +35,7 @@ from py_zipkin import Encoding
 from rag_agent import State, create_workflow
 from transport import http_transport
 from utils import get_console_logger
-from config import AGENT_NAME, COLLECTION_NAME
+from config import AGENT_NAME, DEBUG, COLLECTION_NAME, MAX_MSGS_IN_HISTORY
 
 # Constant
 
@@ -90,7 +90,11 @@ def add_to_chat_history(msg):
 
 def get_chat_history():
     """return the chat history from the session"""
-    return st.session_state.chat_history
+    return (
+        st.session_state.chat_history[-MAX_MSGS_IN_HISTORY:]
+        if MAX_MSGS_IN_HISTORY > 0
+        else st.session_state.chat_history
+    )
 
 
 #
@@ -110,7 +114,8 @@ st.sidebar.header("Options")
 
 # add the choice of LLM (not used for now)
 st.session_state.main_language = st.sidebar.selectbox(
-    "Select the main language", ["en", "it", "fr"]
+    "Select the language for the answer",
+    ["same as the question", "en", "fr", "it", "es"],
 )
 st.session_state.model_id = st.sidebar.selectbox(
     "Select the Chat Model",
@@ -168,7 +173,8 @@ if question := st.chat_input("Hello, how can I help you?"):
                         }
                     }
 
-                    logger.info("Agent config: %s", agent_config)
+                    if DEBUG:
+                        logger.info("Agent config: %s", agent_config)
 
                     for event in st.session_state.workflow.stream(
                         input_state,
@@ -221,6 +227,7 @@ if question := st.chat_input("Hello, how can I help you?"):
 
         elapsed_time = round((time.time() - time_start), 1)
         logger.info("Elapsed time: %s sec.", elapsed_time)
+        logger.info("")
 
     except Exception as e:
         ERR_MSG = "An error occurred: " + str(e)

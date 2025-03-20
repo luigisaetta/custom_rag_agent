@@ -20,7 +20,7 @@ from prompts import (
 )
 
 from utils import get_console_logger
-from config import AGENT_NAME
+from config import AGENT_NAME, DEBUG
 
 logger = get_console_logger()
 
@@ -35,6 +35,12 @@ class AnswerGenerator(Runnable):
         """
         Init
         """
+        self.dict_languages = {
+            "en": "English",
+            "fr": "French",
+            "it": "Italian",
+            "es": "Spanish",
+        }
 
     def build_context_for_llm(self, docs: list):
         """
@@ -56,11 +62,20 @@ class AnswerGenerator(Runnable):
         """
         # get the config
         model_id = config["configurable"]["model_id"]
-        # should be used to select the prompt template
-        main_language = config["configurable"]["main_language"]
 
-        logger.info("AnswerGenerator, model_id: %s", model_id)
-        logger.info("AnswerGenerator, main_language: %s", main_language)
+        if config["configurable"]["main_language"] in self.dict_languages:
+            # want to change language
+            main_language = self.dict_languages.get(
+                config["configurable"]["main_language"]
+            )
+        else:
+            # "same as the question" (default)
+            # answer will be in the same language as the question
+            main_language = None
+
+        if DEBUG:
+            logger.info("AnswerGenerator, model_id: %s", model_id)
+            logger.info("AnswerGenerator, main_language: %s", main_language)
 
         final_answer = ""
         error = None
@@ -70,12 +85,10 @@ class AnswerGenerator(Runnable):
 
             _context = self.build_context_for_llm(input["reranker_docs"])
 
-            _prompt_template = PromptTemplate(
+            system_prompt = PromptTemplate(
                 input_variables=["context"],
                 template=ANSWER_PROMPT_TEMPLATE,
-            )
-
-            system_prompt = _prompt_template.format(context=_context)
+            ).format(context=_context)
 
             messages = [
                 SystemMessage(content=system_prompt),
@@ -84,7 +97,14 @@ class AnswerGenerator(Runnable):
             for msg in input["chat_history"]:
                 messages.append(msg)
 
-            messages.append(HumanMessage(content=input["user_request"]))
+            # to force the answer in the selected language
+            if main_language is not None:
+                the_question = f"{input['user_request']}. Answer in {main_language}."
+            else:
+                # no cross language
+                the_question = input["user_request"]
+
+            messages.append(HumanMessage(content=the_question))
 
             # here we invoke the LLM and we return the generator
             final_answer = llm.stream(messages)
