@@ -35,12 +35,18 @@ from py_zipkin import Encoding
 from rag_agent import State, create_workflow
 from transport import http_transport
 from utils import get_console_logger
-from config import AGENT_NAME, DEBUG, COLLECTION_NAME, MAX_MSGS_IN_HISTORY
+from config import (
+    AGENT_NAME,
+    DEBUG,
+    COLLECTION_NAME,
+    MAX_MSGS_IN_HISTORY,
+    MODEL_LIST,
+    LANGUAGE_LIST,
+)
 
 # Constant
 
 # name for the roles
-
 USER = "user"
 ASSISTANT = "assistant"
 
@@ -115,11 +121,11 @@ st.sidebar.header("Options")
 # add the choice of LLM (not used for now)
 st.session_state.main_language = st.sidebar.selectbox(
     "Select the language for the answer",
-    ["same as the question", "en", "fr", "it", "es"],
+    LANGUAGE_LIST,
 )
 st.session_state.model_id = st.sidebar.selectbox(
     "Select the Chat Model",
-    ["meta.llama-3.3-70b-instruct", "cohere.command-r-plus-08-2024"],
+    MODEL_LIST,
 )
 ENABLE_RERANKER = st.sidebar.checkbox("Enable Reranker", value=True, disabled=True)
 

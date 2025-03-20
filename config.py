@@ -11,9 +11,14 @@ AUTH = "API_KEY"
 EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
 
 # LLM
+# this is the default model
 LLM_MODEL_ID = "meta.llama-3.3-70b-instruct"
 TEMPERATURE = 0.1
 MAX_TOKENS = 1024
+
+# for the UI
+LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
+MODEL_LIST = ["meta.llama-3.3-70b-instruct", "cohere.command-r-plus-08-2024"]
 
 # semantic search
 TOP_K = 6
