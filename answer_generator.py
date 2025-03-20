@@ -54,11 +54,19 @@ class AnswerGenerator(Runnable):
         """
         Generate the final answer
         """
+        # get the config
+        model_id = config["configurable"]["model_id"]
+        # should be used to select the prompt template
+        main_language = config["configurable"]["main_language"]
+
+        logger.info("AnswerGenerator, model_id: %s", model_id)
+        logger.info("AnswerGenerator, main_language: %s", main_language)
+
         final_answer = ""
         error = None
 
         try:
-            llm = get_llm()
+            llm = get_llm(model_id=model_id)
 
             _context = self.build_context_for_llm(input["reranker_docs"])
 

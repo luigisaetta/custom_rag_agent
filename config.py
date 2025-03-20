@@ -17,7 +17,7 @@ MAX_TOKENS = 1024
 
 # semantic search
 TOP_K = 6
-COLLECTION_NAME = "BOOKS"
+COLLECTION_NAME = "CNAF"
 
 # OCI general
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"

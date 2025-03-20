@@ -96,7 +96,7 @@ class Reranker(Runnable):
                 # there is something to rerank!
                 if ENABLE_RERANKER:
                     # do reranking
-                    llm = get_llm(temperature=0.0, max_tokens=4000)
+                    llm = get_llm(temperature=0.0)
 
                     reranked_docs = self.get_reranked_docs(
                         llm, user_request, retriever_docs

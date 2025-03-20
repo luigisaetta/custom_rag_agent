@@ -2,7 +2,7 @@
 File name: assistant_ui.py
 Author: Luigi Saetta
 Date created: 2023-12-04
-Date last modified: 2025-03-15
+Date last modified: 2025-03-19
 Python Version: 3.11
 
 Description:
@@ -35,7 +35,7 @@ from py_zipkin import Encoding
 from rag_agent import State, create_workflow
 from transport import http_transport
 from utils import get_console_logger
-from config import AGENT_NAME
+from config import AGENT_NAME, COLLECTION_NAME
 
 # Constant
 
@@ -52,9 +52,13 @@ if "chat_history" not in st.session_state:
 if "workflow" not in st.session_state:
     # the agent instance
     st.session_state.workflow = create_workflow()
-if "agent_config" not in st.session_state:
+if "thread_id" not in st.session_state:
     # generate a new thread_Id
-    st.session_state.agent_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    st.session_state.thread_id = str(uuid.uuid4())
+if "model_id" not in st.session_state:
+    st.session_state.model_id = "meta.llama3.3-70B"
+if "main_language" not in st.session_state:
+    st.session_state.main_language = "en"
 
 
 #
@@ -74,7 +78,7 @@ def reset_conversation():
     st.session_state.chat_history = []
 
     # change thread_id
-    st.session_state.agent_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    st.session_state.thread_id = str(uuid.uuid4())
 
 
 def add_to_chat_history(msg):
@@ -92,16 +96,26 @@ def get_chat_history():
 #
 # Main
 #
-st.title("OCI Custom RAG")
+st.title("OCI Custom RAG Agent")
 
 # Reset button
 if st.sidebar.button("Clear Chat History"):
     reset_conversation()
 
+# the collection used for semantic search
+st.sidebar.markdown("### Collection")
+st.sidebar.markdown(COLLECTION_NAME)
+
 st.sidebar.header("Options")
 
 # add the choice of LLM (not used for now)
-model_id = st.sidebar.selectbox("Select the Chat Model", ["meta.llama3.3-70B"])
+st.session_state.main_language = st.sidebar.selectbox(
+    "Select the main language", ["en", "it", "fr"]
+)
+st.session_state.model_id = st.sidebar.selectbox(
+    "Select the Chat Model",
+    ["meta.llama-3.3-70b-instruct", "cohere.command-r-plus-08-2024"],
+)
 ENABLE_RERANKER = st.sidebar.checkbox("Enable Reranker", value=True, disabled=True)
 
 
@@ -144,9 +158,21 @@ if question := st.chat_input("Hello, how can I help you?"):
                     sample_rate=100,
                 ) as span:
                     # loop to manage streaming
+                    # set the agent config
+                    agent_config = {
+                        "configurable": {
+                            "model_id": st.session_state.model_id,
+                            "main_language": st.session_state.main_language,
+                            "enable_reranker": ENABLE_RERANKER,
+                            "thread_id": st.session_state.thread_id,
+                        }
+                    }
+
+                    logger.info("Agent config: %s", agent_config)
+
                     for event in st.session_state.workflow.stream(
                         input_state,
-                        # config=st.session_state.agent_config,
+                        config=agent_config,
                     ):
                         for key, value in event.items():
                             MSG = f"Completed: {key}!"

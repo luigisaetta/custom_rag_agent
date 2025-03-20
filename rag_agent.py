@@ -3,7 +3,6 @@ Custom RAG Agent
 """
 
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
 
 from agent_state import State
 
@@ -42,8 +41,6 @@ def create_workflow():
     workflow.add_edge("Answer", END)
 
     # create workflow executor
-    memory = MemorySaver()
-    # disabled for now
-    workflow_app = workflow.compile()  # checkpointer=memory)
+    workflow_app = workflow.compile()
 
     return workflow_app

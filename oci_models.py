@@ -18,7 +18,7 @@ from config import (
 logger = get_console_logger()
 
 
-def get_llm(temperature=TEMPERATURE, max_tokens=MAX_TOKENS):
+def get_llm(model_id=LLM_MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_TOKENS):
     """
     Initialize and return an instance of ChatOCIGenAI with the specified configuration.
 
@@ -27,7 +27,7 @@ def get_llm(temperature=TEMPERATURE, max_tokens=MAX_TOKENS):
     """
     llm = ChatOCIGenAI(
         auth_type=AUTH,
-        model_id=LLM_MODEL_ID,
+        model_id=model_id,
         service_endpoint=SERVICE_ENDPOINT,
         compartment_id=COMPARTMENT_ID,
         is_stream=True,

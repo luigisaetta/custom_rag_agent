@@ -40,7 +40,7 @@ class BM25OracleSearch:
             connection = oracledb.connect(**CONNECT_ARGS)
             return connection
         except oracledb.DatabaseError as e:
-            logger.info(f"Database connection error: {e}")
+            logger.info("Database connection error: %s", e)
             return None
 
     def fetch_text_data(self):
