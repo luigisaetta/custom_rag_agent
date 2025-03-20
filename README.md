@@ -8,18 +8,19 @@ This repository contains all the code for the development of a **custom RAG Agen
 
 Design decisions:
 * For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
-* Reranker is implemented using a LLM. AS other option, it is easy to plug-in, for example, Cohere reranker
+* Reranker is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
 * The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
 * UI implemented with **Streamlit**
 
-Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
+* Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
 For example, links to the documentation' chunks are displayed before the final answer is ready.
+* Streaming of the final answer.
 
 ## Status
 It is **wip**.
 
 ## References
-[Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)
+* [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)
 
 ## Advantages of the Agentic approach
 One of the primary advantages of the agentic approach is its modularity. 
