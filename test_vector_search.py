@@ -32,7 +32,14 @@ for i, question in enumerate(questions):
     input_state = State(user_request=question, standalone_question=question)
 
     try:
-        results = v_search.invoke(input_state)
+        agent_config = {
+            "configurable": {
+                "collection_name": "BOOKS",
+                "thread_id": "1234",
+            }
+        }
+
+        results = v_search.invoke(input_state, config=agent_config)
 
         if len(results["retriever_docs"]) == 0:
             logger.error("No records found!")
