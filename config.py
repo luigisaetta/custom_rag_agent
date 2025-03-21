@@ -22,8 +22,7 @@ MODEL_LIST = ["meta.llama-3.3-70b-instruct", "cohere.command-r-plus-08-2024"]
 
 # semantic search
 TOP_K = 6
-# COLLECTION_NAME = "CNAF"
-COLLECTION_NAME = "BOOKS"
+COLLECTION_LIST = ["BOOKS", "CNAF"]
 
 # OCI general
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
@@ -33,8 +32,7 @@ SERVICE_ENDPOINT = "https://inference.generativeai.eu-frankfurt-1.oci.oracleclou
 # consider that we have pair (human, ai) so use an even (ex: 6) value
 MAX_MSGS_IN_HISTORY = 6
 
-# reranking
-ENABLE_RERANKER = True
+# reranking enabled or disabled from UI
 
 # Integration with APM
 AGENT_NAME = "OCI_CUSTOM_RAG_AGENT"

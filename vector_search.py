@@ -23,7 +23,6 @@ from config import (
     EMBED_MODEL_ID,
     SERVICE_ENDPOINT,
     COMPARTMENT_ID,
-    COLLECTION_NAME,
     TOP_K,
 )
 
@@ -71,6 +70,8 @@ class SemanticSearch(Runnable):
 
         input: the agent state
         """
+        collection_name = config["configurable"]["collection_name"]
+
         relevant_docs = []
         error = None
 
@@ -82,11 +83,11 @@ class SemanticSearch(Runnable):
         try:
             embed_model = self.get_embedding_model()
 
-            # get a connection othe DB and init VS
+            # get a connection to the DB and init VS
             with self.get_connection() as conn:
                 v_store = OracleVS(
                     client=conn,
-                    table_name=COLLECTION_NAME,
+                    table_name=collection_name,
                     distance_strategy=DistanceStrategy.COSINE,
                     embedding_function=embed_model,
                 )

@@ -17,7 +17,7 @@ from prompts import (
 )
 from oci_models import get_llm
 from utils import get_console_logger, extract_json_from_text
-from config import DEBUG, AGENT_NAME, ENABLE_RERANKER, TOP_K
+from config import DEBUG, AGENT_NAME, TOP_K
 
 logger = get_console_logger()
 
@@ -84,6 +84,8 @@ class Reranker(Runnable):
 
         input: The agent state.
         """
+        enable_reranker = config["configurable"]["enable_reranker"]
+
         user_request = input.get("standalone_question", "")
         retriever_docs = input.get("retriever_docs", [])
         error = None
@@ -94,7 +96,7 @@ class Reranker(Runnable):
         try:
             if retriever_docs:
                 # there is something to rerank!
-                if ENABLE_RERANKER:
+                if enable_reranker:
                     # do reranking
                     llm = get_llm(temperature=0.0)
 

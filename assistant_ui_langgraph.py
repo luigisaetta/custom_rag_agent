@@ -38,10 +38,10 @@ from utils import get_console_logger
 from config import (
     AGENT_NAME,
     DEBUG,
-    COLLECTION_NAME,
-    MAX_MSGS_IN_HISTORY,
+    COLLECTION_LIST,
     MODEL_LIST,
     LANGUAGE_LIST,
+    MAX_MSGS_IN_HISTORY,
 )
 
 # Constant
@@ -65,6 +65,10 @@ if "model_id" not in st.session_state:
     st.session_state.model_id = "meta.llama3.3-70B"
 if "main_language" not in st.session_state:
     st.session_state.main_language = "en"
+if "enable_reranker" not in st.session_state:
+    st.session_state.enable_reranker = True
+if "collection_name" not in st.session_state:
+    st.session_state.collection_name = COLLECTION_LIST[0]
 
 
 #
@@ -112,11 +116,14 @@ st.title("OCI Custom RAG Agent")
 if st.sidebar.button("Clear Chat History"):
     reset_conversation()
 
-# the collection used for semantic search
-st.sidebar.markdown("### Collection")
-st.sidebar.markdown(COLLECTION_NAME)
 
 st.sidebar.header("Options")
+
+# the collection used for semantic search
+st.session_state.collection_name = st.sidebar.selectbox(
+    "Collection name",
+    COLLECTION_LIST,
+)
 
 # add the choice of LLM (not used for now)
 st.session_state.main_language = st.sidebar.selectbox(
@@ -127,7 +134,9 @@ st.session_state.model_id = st.sidebar.selectbox(
     "Select the Chat Model",
     MODEL_LIST,
 )
-ENABLE_RERANKER = st.sidebar.checkbox("Enable Reranker", value=True, disabled=True)
+st.session_state.enable_reranker = st.sidebar.checkbox(
+    "Enable Reranker", value=True, disabled=False
+)
 
 
 #
@@ -173,8 +182,9 @@ if question := st.chat_input("Hello, how can I help you?"):
                     agent_config = {
                         "configurable": {
                             "model_id": st.session_state.model_id,
+                            "enable_reranker": st.session_state.enable_reranker,
                             "main_language": st.session_state.main_language,
-                            "enable_reranker": ENABLE_RERANKER,
+                            "collection_name": st.session_state.collection_name,
                             "thread_id": st.session_state.thread_id,
                         }
                     }
