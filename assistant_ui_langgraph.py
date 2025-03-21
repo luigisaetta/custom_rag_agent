@@ -42,6 +42,7 @@ from config import (
     MODEL_LIST,
     LANGUAGE_LIST,
     MAX_MSGS_IN_HISTORY,
+    ENABLE_USER_FEEDBACK,
 )
 
 # Constant
@@ -69,6 +70,10 @@ if "enable_reranker" not in st.session_state:
     st.session_state.enable_reranker = True
 if "collection_name" not in st.session_state:
     st.session_state.collection_name = COLLECTION_LIST[0]
+
+# to manage feedback
+if "get_feedback" not in st.session_state:
+    st.session_state.get_feedback = False
 
 
 #
@@ -105,6 +110,18 @@ def get_chat_history():
         if MAX_MSGS_IN_HISTORY > 0
         else st.session_state.chat_history
     )
+
+
+def register_feedback():
+    """
+    Register the feedback.
+    Should be completed (save to DB?)
+    """
+    # number of stars, start at 0
+    logger.info("Feedback: %s %s", st.session_state.feedback + 1, "stars")
+    logger.info("")
+
+    st.session_state.get_feedback = False
 
 
 #
@@ -229,6 +246,13 @@ if question := st.chat_input("Hello, how can I help you?"):
 
                         response_container.markdown(full_response)
 
+                    elapsed_time = round((time.time() - time_start), 1)
+                    logger.info("Elapsed time: %s sec.", elapsed_time)
+                    logger.info("")
+
+                    if ENABLE_USER_FEEDBACK:
+                        st.session_state.get_feedback = True
+
                 else:
                     st.error(ERROR)
 
@@ -236,14 +260,14 @@ if question := st.chat_input("Hello, how can I help you?"):
                 add_to_chat_history(HumanMessage(content=question))
                 add_to_chat_history(AIMessage(content=full_response))
 
+                # get the feedback
+                if st.session_state.get_feedback:
+                    st.feedback("stars", key="feedback", on_change=register_feedback)
+
             except Exception as e:
                 ERR_MSG = f"Error in assistant_ui, generate_and_exec {e}"
                 logger.error(ERR_MSG)
                 st.error(ERR_MSG)
-
-        elapsed_time = round((time.time() - time_start), 1)
-        logger.info("Elapsed time: %s sec.", elapsed_time)
-        logger.info("")
 
     except Exception as e:
         ERR_MSG = "An error occurred: " + str(e)

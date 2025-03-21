@@ -20,6 +20,8 @@ MAX_TOKENS = 1024
 LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
 MODEL_LIST = ["meta.llama-3.3-70b-instruct", "cohere.command-r-plus-08-2024"]
 
+ENABLE_USER_FEEDBACK = True
+
 # semantic search
 TOP_K = 6
 COLLECTION_LIST = ["BOOKS", "CNAF"]
