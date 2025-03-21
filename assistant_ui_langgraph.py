@@ -33,6 +33,7 @@ from py_zipkin.zipkin import zipkin_span
 from py_zipkin import Encoding
 
 from rag_agent import State, create_workflow
+from rag_feedback import RagFeedback
 from transport import http_transport
 from utils import get_console_logger
 from config import (
@@ -52,6 +53,7 @@ USER = "user"
 ASSISTANT = "assistant"
 
 logger = get_console_logger()
+
 
 # Initialize session state
 if "chat_history" not in st.session_state:
@@ -118,8 +120,18 @@ def register_feedback():
     Should be completed (save to DB?)
     """
     # number of stars, start at 0
-    logger.info("Feedback: %s %s", st.session_state.feedback + 1, "stars")
+    n_stars = st.session_state.feedback + 1
+    logger.info("Feedback: %d %s", n_stars, "stars")
     logger.info("")
+
+    # register the feedback in DB
+    rag_feedback = RagFeedback()
+
+    rag_feedback.insert_feedback(
+        question=st.session_state.chat_history[-2].content,
+        answer=st.session_state.chat_history[-1].content,
+        feedback=n_stars,
+    )
 
     st.session_state.get_feedback = False
 
