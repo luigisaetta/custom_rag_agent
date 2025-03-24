@@ -37,7 +37,7 @@ class Reranker(Runnable):
         Returns a list of reference dictionaries used in the reranker.
         """
         return [
-            {"source": doc.metadata["source"], "page_label": doc.metadata["page_label"]}
+            {"source": doc.metadata["source"], "page": doc.metadata["page_label"]}
             for doc in docs
         ]
 

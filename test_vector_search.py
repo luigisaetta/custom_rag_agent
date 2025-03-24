@@ -11,6 +11,7 @@ logger = get_console_logger()
 v_search = SemanticSearch()
 
 questions = [
+    "What are the knwon side effects of metformin?",
     "Chi è Luigi Saetta?",
     "Cosa è l'aspirina?",
     "Quali sono gli effetti collaterali dell'aspirina?",
@@ -21,6 +22,7 @@ questions = [
     "Describe the most relevant innovations in GPT-4",
     "Quali sono gli effetti positivi che l'adozione dell'AI Generativa può portare per l'economia italiana?",
     "Cosa è la tachipirina?",
+    "Nell'analisi di dati strutturati, ok. Quale può essere un approccio perseguibile per avere certezza dei risultati (della corretteza dei calcoli)?",
 ]
 
 
