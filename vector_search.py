@@ -33,10 +33,7 @@ logger = get_console_logger()
 
 class SemanticSearch(Runnable):
     """
-    This class is a base class for all nodes in the agent
-    where you equip the node with APM tracing capabilities.
-    It provides a common interface for running a node and a hook for adding
-    custom logic
+    IMplements Semantic Search for the Agent
     """
 
     def __init__(self):
@@ -105,3 +102,52 @@ class SemanticSearch(Runnable):
             error = str(e)
 
         return {"retriever_docs": relevant_docs, "error": error}
+
+    #
+    #  Helper functions
+    #
+    def list_books_in_collection(self, collection_name: str) -> list:
+        """
+        get the list of books/documents names in the collection
+        taken from metadata
+        expect metadata contains the field source
+        """
+        query = f"""
+                SELECT DISTINCT json_value(METADATA, '$.source') AS books
+                FROM {collection_name}
+                ORDER by books ASC
+                """
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+
+                rows = cursor.fetchall()
+
+                list_books = []
+                for row in rows:
+                    list_books.append(row[0])
+
+        return list_books
+
+    def add_documents(self, docs: list, collection_name: str):
+        """
+        Add the chunks to an existing collection
+
+        docs is a list of Langchain documents
+        """
+        try:
+            embed_model = self.get_embedding_model()
+
+            with self.get_connection() as conn:
+                v_store = OracleVS(
+                    client=conn,
+                    table_name=collection_name,
+                    distance_strategy=DistanceStrategy.COSINE,
+                    embedding_function=embed_model,
+                )
+                v_store.add_documents(docs)
+                logger.info("Added docs to collection %s", collection_name)
+
+        except Exception as e:
+            logger.error("Error in vector_store.add_documents: %s", e)
+            raise e

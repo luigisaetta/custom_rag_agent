@@ -117,7 +117,6 @@ def get_chat_history():
 def register_feedback():
     """
     Register the feedback.
-    Should be completed (save to DB?)
     """
     # number of stars, start at 0
     n_stars = st.session_state.feedback + 1

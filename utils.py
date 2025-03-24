@@ -2,6 +2,7 @@
 Utils
 """
 
+import os
 import logging
 import re
 import json
@@ -73,3 +74,16 @@ def extract_json_from_text(text):
         raise ValueError("No JSON content found in the text.")
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON format: {e}")
+
+
+# for the loading utility
+def remove_path_from_ref(ref_pathname):
+    """
+    remove the path from source (ref)
+    """
+    ref = ref_pathname
+    # check if / or \ is contained
+    if len(ref_pathname.split(os.sep)) > 0:
+        ref = ref_pathname.split(os.sep)[-1]
+
+    return ref

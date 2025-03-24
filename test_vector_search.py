@@ -11,6 +11,7 @@ logger = get_console_logger()
 v_search = SemanticSearch()
 
 questions = [
+    "What are the potential risks coming from the adoption of LLM in medicine?",
     "What are the knwon side effects of metformin?",
     "Chi è Luigi Saetta?",
     "Cosa è l'aspirina?",
