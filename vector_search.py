@@ -111,10 +111,14 @@ class SemanticSearch(Runnable):
         get the list of books/documents names in the collection
         taken from metadata
         expect metadata contains the field source
+
+        modified to return also the numb. of chunks
         """
         query = f"""
-                SELECT DISTINCT json_value(METADATA, '$.source') AS books
+                SELECT DISTINCT json_value(METADATA, '$.source') AS books, 
+                count(*) as n_chunks 
                 FROM {collection_name}
+                group by books
                 ORDER by books ASC
                 """
         with self.get_connection() as conn:
@@ -125,7 +129,7 @@ class SemanticSearch(Runnable):
 
                 list_books = []
                 for row in rows:
-                    list_books.append(row[0])
+                    list_books.append((row[0], row[1]))
 
         return list_books
 
