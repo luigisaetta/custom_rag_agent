@@ -1,6 +1,7 @@
 """
 LOB issue simple test case
 """
+
 import oracledb
 from langchain_community.vectorstores.utils import DistanceStrategy
 from langchain_community.embeddings import OCIGenAIEmbeddings
@@ -28,9 +29,7 @@ logger = get_console_logger()
 logger.info("")
 logger.info("Starting test...")
 
-questions = [
-    "What are the knwon side effects of metformin?,"
-]
+questions = ["What are the knwon side effects of metformin?,"]
 
 #
 # setup
@@ -43,7 +42,7 @@ embed_model = OCIGenAIEmbeddings(
 )
 
 with oracledb.connect(**CONNECT_ARGS) as conn:
-    
+
     v_store = OracleVS(
         client=conn,
         table_name="BOOKS",
@@ -52,8 +51,4 @@ with oracledb.connect(**CONNECT_ARGS) as conn:
     )
 
     for question in questions:
-        relevant_docs = v_store.similarity_search(
-            query=question, k=TOP_K
-        )
-    
-    
+        relevant_docs = v_store.similarity_search(query=question, k=TOP_K)

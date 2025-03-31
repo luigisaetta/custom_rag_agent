@@ -36,15 +36,9 @@ from rag_agent import State, create_workflow
 from rag_feedback import RagFeedback
 from transport import http_transport
 from utils import get_console_logger
-from config import (
-    AGENT_NAME,
-    DEBUG,
-    COLLECTION_LIST,
-    MODEL_LIST,
-    LANGUAGE_LIST,
-    MAX_MSGS_IN_HISTORY,
-    ENABLE_USER_FEEDBACK,
-)
+
+# changed to better manage ENABLE_TRACING
+import config
 
 # Constant
 
@@ -71,7 +65,7 @@ if "main_language" not in st.session_state:
 if "enable_reranker" not in st.session_state:
     st.session_state.enable_reranker = True
 if "collection_name" not in st.session_state:
-    st.session_state.collection_name = COLLECTION_LIST[0]
+    st.session_state.collection_name = config.COLLECTION_LIST[0]
 
 # to manage feedback
 if "get_feedback" not in st.session_state:
@@ -108,8 +102,8 @@ def add_to_chat_history(msg):
 def get_chat_history():
     """return the chat history from the session"""
     return (
-        st.session_state.chat_history[-MAX_MSGS_IN_HISTORY:]
-        if MAX_MSGS_IN_HISTORY > 0
+        st.session_state.chat_history[-config.MAX_MSGS_IN_HISTORY :]
+        if config.MAX_MSGS_IN_HISTORY > 0
         else st.session_state.chat_history
     )
 
@@ -150,20 +144,23 @@ st.sidebar.header("Options")
 # the collection used for semantic search
 st.session_state.collection_name = st.sidebar.selectbox(
     "Collection name",
-    COLLECTION_LIST,
+    config.COLLECTION_LIST,
 )
 
 # add the choice of LLM (not used for now)
 st.session_state.main_language = st.sidebar.selectbox(
     "Select the language for the answer",
-    LANGUAGE_LIST,
+    config.LANGUAGE_LIST,
 )
 st.session_state.model_id = st.sidebar.selectbox(
     "Select the Chat Model",
-    MODEL_LIST,
+    config.MODEL_LIST,
 )
 st.session_state.enable_reranker = st.sidebar.checkbox(
     "Enable Reranker", value=True, disabled=False
+)
+config.ENABLE_TRACING = st.sidebar.checkbox(
+    "Enable tracing", value=False, disabled=False
 )
 
 
@@ -199,7 +196,7 @@ if question := st.chat_input("Hello, how can I help you?"):
 
                 # integration with tracing, start the trace
                 with zipkin_span(
-                    service_name=AGENT_NAME,
+                    service_name=config.AGENT_NAME,
                     span_name="stream",
                     transport_handler=http_transport,
                     encoding=Encoding.V2_JSON,
@@ -211,13 +208,14 @@ if question := st.chat_input("Hello, how can I help you?"):
                         "configurable": {
                             "model_id": st.session_state.model_id,
                             "enable_reranker": st.session_state.enable_reranker,
+                            "enable_tracing": config.ENABLE_TRACING,
                             "main_language": st.session_state.main_language,
                             "collection_name": st.session_state.collection_name,
                             "thread_id": st.session_state.thread_id,
                         }
                     }
 
-                    if DEBUG:
+                    if config.DEBUG:
                         logger.info("Agent config: %s", agent_config)
 
                     for event in st.session_state.workflow.stream(
@@ -261,7 +259,7 @@ if question := st.chat_input("Hello, how can I help you?"):
                     logger.info("Elapsed time: %s sec.", elapsed_time)
                     logger.info("")
 
-                    if ENABLE_USER_FEEDBACK:
+                    if config.ENABLE_USER_FEEDBACK:
                         st.session_state.get_feedback = True
 
                 else:

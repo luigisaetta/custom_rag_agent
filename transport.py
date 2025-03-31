@@ -5,8 +5,9 @@ to enable tracing to APM
 
 import requests
 from utils import get_console_logger
-from config import APM_BASE_URL, APM_CONTENT_TYPE, ENABLE_TRACING
 
+# changed to handle ENABLE_TRACING from UI
+import config
 from config_private import APM_PUBLIC_KEY
 
 
@@ -25,8 +26,8 @@ def http_transport(encoded_span):
     """
     try:
         # Load config inside the function to avoid global dependency issues
-        base_url = APM_BASE_URL
-        content_type = APM_CONTENT_TYPE
+        base_url = config.APM_BASE_URL
+        content_type = config.APM_CONTENT_TYPE
 
         # Validate configuration
         if not base_url:
@@ -35,7 +36,7 @@ def http_transport(encoded_span):
             raise ValueError("APM public key is missing")
 
         # If tracing is disabled, do nothing
-        if not ENABLE_TRACING:
+        if not config.ENABLE_TRACING:
             logger.info("Tracing is disabled. No data sent to APM.")
             return None
 
