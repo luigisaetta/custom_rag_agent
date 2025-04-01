@@ -1,7 +1,28 @@
 """
-Node for the Semantic Search
+File name: vector_search.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
 
-Encapsulate Oracle VS, based on 23AI
+Description:
+    This module implements the Semantic Sesarch in the agent
+    using 23Ai Vector Search
+
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+        import config
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 import oracledb
@@ -33,7 +54,7 @@ logger = get_console_logger()
 
 class SemanticSearch(Runnable):
     """
-    IMplements Semantic Search for the Agent
+    Implements Semantic Search for the Agent
     """
 
     def __init__(self):
