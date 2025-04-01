@@ -1,3 +1,5 @@
+![UI](images/ui_image.png)
+
 # Custom RAG agent
 This repository contains all the code for the development of a **custom RAG Agent**, based on OCI Generative AI, Oracle 23AI DB and **LangGraph**
 
