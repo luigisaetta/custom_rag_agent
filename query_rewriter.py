@@ -1,5 +1,27 @@
 """
-Query rewriter
+File name: query_rewriter.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
+
+Description:
+    This module implements the first step in the agent's workflow:
+    query rewriting.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+        from query_rewriter import QueryRewriter
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 from langchain_core.runnables import Runnable

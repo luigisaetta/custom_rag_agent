@@ -1,5 +1,27 @@
 """
-Custom RAG Agent
+File name: rag_agent.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
+
+Description:
+    This module implements the orchestration in the Agent.
+    Based on LanGraph.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 from langgraph.graph import StateGraph, START, END

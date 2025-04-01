@@ -1,8 +1,8 @@
 """
 File name: assistant_ui.py
 Author: Luigi Saetta
-Date created: 2023-12-04
-Date last modified: 2025-03-19
+Date created: 2024-12-04
+Date last modified: 2025-03-31
 Python Version: 3.11
 
 Description:
@@ -15,7 +15,8 @@ License:
     This code is released under the MIT License.
 
 Notes:
-    This is part of a  series of demo developed using OCI GenAI and LangChain
+    This is part of a  demo fro a RAG solution implemented
+    using LangGraph
 
 Warnings:
     This module is in development, may change in future versions.
