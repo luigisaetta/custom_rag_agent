@@ -1,5 +1,27 @@
 """
-Agent State
+File name: agent_state.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
+
+Description:
+    This module defines the class that handles the agent's State
+
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+        from agent_state import State
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 from typing_extensions import TypedDict, Optional
