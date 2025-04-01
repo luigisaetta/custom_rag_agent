@@ -1,6 +1,27 @@
 """
-This module provides a class to register
-user feedback in the RAG_FEEDBACK table.
+File name: rag_feedback.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
+
+Description:
+    This module implements handling of user's feedback.
+    Based on LangGraph.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 from datetime import datetime

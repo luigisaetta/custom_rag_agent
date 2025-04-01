@@ -1,6 +1,27 @@
 """
-This file contains the pluggable component for the transport
-to enable tracing to APM
+File name: trasnport.py
+Author: Luigi Saetta
+Date last modified: 2025-03-31
+Python Version: 3.11
+
+Description:
+    This code provide the http transport support for integration with OCI APM.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+       ...
+
+
+License:
+    This code is released under the MIT License.
+
+Notes:
+    This is a part of a demo showing how to implement an advanced
+    RAG solution as a LangGraph agent.
+
+Warnings:
+    This module is in development, may change in future versions.
 """
 
 import requests
