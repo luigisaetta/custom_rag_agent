@@ -1,16 +1,16 @@
 # Custom RAG agent
-This repository contains all the code for the development of a **custom RAG Agent**, based on OCI Generative AI, 23AI and **LangGraph**
+This repository contains all the code for the development of a **custom RAG Agent**, based on OCI Generative AI, Oracle 23AI DB and **LangGraph**
 
 ## Design and implementation
 * The agent is implemented using **LangGraph**
 * Vector Search is implemented, using Langchain, on top of Oracle 23AI
-* (Optional) A **reranker** can be used to refine the search
+* A **reranker** can be used to refine the search
 
 Design decisions:
 * For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
 * Reranker is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
 * The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
-* UI implemented with **Streamlit**
+* UI implemented using **Streamlit**
 
 Streaming:
 * Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
