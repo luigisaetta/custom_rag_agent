@@ -43,10 +43,14 @@ def create_workflow():
     """
     workflow = StateGraph(State)
 
-    # create nodes
+    # create nodes (each is a a Runnable)
+    # step 1: rewrite the user request using history
     query_rewriter = QueryRewriter()
+    # step 2: do semantic search
     semantic_search = SemanticSearch()
+    # step 3: filter and rerank, using a LLM
     reranker = Reranker()
+    # step 4: genereta final answer
     answer_generator = AnswerGenerator()
 
     # Add nodes

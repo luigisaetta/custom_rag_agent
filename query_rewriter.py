@@ -88,6 +88,7 @@ class QueryRewriter(Runnable):
                 logger.error("Error in query_rewriting: %s", e)
                 error = str(e)
         else:
+            # no previous requests, don't reformulate
             standalone_question = user_request
 
         return {"standalone_question": standalone_question, "error": error}
