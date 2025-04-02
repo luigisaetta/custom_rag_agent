@@ -30,8 +30,9 @@ from utils import get_console_logger
 from config import (
     AUTH,
     SERVICE_ENDPOINT,
-    LLM_MODEL_ID,
     COMPARTMENT_ID,
+    # used only for defaults
+    LLM_MODEL_ID,
     TEMPERATURE,
     MAX_TOKENS,
 )

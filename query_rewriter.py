@@ -62,7 +62,8 @@ class QueryRewriter(Runnable):
         error = None
 
         if len(input["chat_history"]) > 0:
-            logger.info("Reformulating the question...")
+            if DEBUG:
+                logger.info("Reformulating the question...")
 
             try:
                 llm = get_llm(temperature=0)

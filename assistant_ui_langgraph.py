@@ -38,7 +38,7 @@ from rag_feedback import RagFeedback
 from transport import http_transport
 from utils import get_console_logger
 
-# changed to better manage ENABLE_TRACING
+# changed to better manage ENABLE_TRACING (can be enabled from UI)
 import config
 
 # Constant
@@ -203,7 +203,6 @@ if question := st.chat_input("Hello, how can I help you?"):
                     encoding=Encoding.V2_JSON,
                     sample_rate=100,
                 ) as span:
-                    # loop to manage streaming
                     # set the agent config
                     agent_config = {
                         "configurable": {
@@ -219,6 +218,7 @@ if question := st.chat_input("Hello, how can I help you?"):
                     if config.DEBUG:
                         logger.info("Agent config: %s", agent_config)
 
+                    # loop to manage streaming
                     for event in st.session_state.workflow.stream(
                         input_state,
                         config=agent_config,

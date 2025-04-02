@@ -12,7 +12,6 @@ Usage:
     Example:
       from utils import ...
 
-
 License:
     This code is released under the MIT License.
 
@@ -61,7 +60,8 @@ def extract_text_triple_backticks(_text):
     """
     logger = get_console_logger()
 
-    pattern = r"```(.*?)```"  # Uses (.*?) to capture text between backticks in a non-greedy way
+    # Uses (.*?) to capture text between backticks in a non-greedy way
+    pattern = r"```(.*?)```"
     # re.DOTALL allows capturing multiline content
 
     try:
