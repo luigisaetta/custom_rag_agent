@@ -17,8 +17,12 @@ from chunk_index_utils import load_and_split_pdf, load_and_split_docx
 from utils import get_console_logger
 
 # init session
-if "collection_name" not in st.session_state:
-    st.session_state.collection_name = COLLECTION_LIST[0]
+if COLLECTION_LIST:
+    if "collection_name" not in st.session_state:
+        st.session_state.collection_name = COLLECTION_LIST[0]
+else:
+    st.error("No collections available.")
+
 if "show_documents" not in st.session_state:
     st.session_state.show_documents = False
 
@@ -47,6 +51,25 @@ def list_books(_collection_name):
     return sorted(_books_list)
 
 
+def show_documents_in_collection(_collection_name):
+    """
+    show the documents in the given collection
+    """
+    with st.spinner():
+        _books_list = list_books(_collection_name)
+
+        books_names = [item[0] for item in _books_list]
+        books_chunks = [item[1] for item in _books_list]
+
+        # convert in a Pandas DataFrame for Visualization
+        df_list = pd.DataFrame({"Document": books_names, "Num. chunks": books_chunks})
+        # index starting by 1
+        df_list.index = range(1, len(df_list) + 1)
+        # visualize
+        with table_area:
+            st.table(df_list)
+
+
 def on_selection_change():
     """
     React to the selection of the collection
@@ -54,15 +77,6 @@ def on_selection_change():
     selected = st.session_state["name_selected"]
 
     logger.info("Collection list selected: %s", selected)
-
-    if st.session_state.show_documents:
-        _books_list = list_books(selected)
-
-        # convert in a Pandas DataFrame for Visualization
-        df_list = pd.DataFrame(_books_list, columns=["Document"])
-
-        with table_area:
-            st.table(df_list)
 
 
 st.session_state.collection_name = st.sidebar.selectbox(
@@ -72,12 +86,20 @@ st.session_state.collection_name = st.sidebar.selectbox(
     on_change=on_selection_change,
 )
 
-st.session_state.show_documents = st.sidebar.checkbox("Show documents")
+# replaced with a button
+show_doc = st.sidebar.button("Show documents")
+
 uploaded_file = st.sidebar.file_uploader("Upload a file", type=["pdf", "docx"])
 
-if uploaded_file is not None:
+# added a button for loading
+load_file = st.sidebar.button("Load file")
+
+if show_doc:
+    show_documents_in_collection(st.session_state.collection_name)
+
+if uploaded_file is not None and load_file:
     # identify file type
-    only_name = uploaded_file.name.split(os.sep)[-1]
+    only_name = os.path.basename(uploaded_file.name)
     file_ext = uploaded_file.name.split(".")[-1]
 
     if DEBUG:
@@ -111,5 +133,8 @@ if uploaded_file is not None:
             SemanticSearch().add_documents(
                 docs, collection_name=st.session_state.collection_name
             )
+
+        st.success("Document loaded")
+
     else:
         st.error(f"{only_name} already in collection")
