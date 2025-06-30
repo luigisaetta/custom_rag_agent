@@ -27,23 +27,17 @@ Warnings:
 
 import oracledb
 from langchain_core.runnables import Runnable
-from langchain_community.vectorstores.utils import DistanceStrategy
-from langchain_community.embeddings import OCIGenAIEmbeddings
-from langchain_community.vectorstores.oraclevs import OracleVS
 
 # integration with APM
 from py_zipkin.zipkin import zipkin_span
 
 from agent_state import State
+from oci_models import get_embedding_model, get_oracle_vs
 from utils import get_console_logger
 
 from config import (
     AGENT_NAME,
     DEBUG,
-    AUTH,
-    EMBED_MODEL_ID,
-    SERVICE_ENDPOINT,
-    COMPARTMENT_ID,
     TOP_K,
 )
 
@@ -68,19 +62,6 @@ class SemanticSearch(Runnable):
         """
         return oracledb.connect(**CONNECT_ARGS)
 
-    def get_embedding_model(self):
-        """
-        Create the Embedding Model
-        """
-        embed_model = OCIGenAIEmbeddings(
-            auth_type=AUTH,
-            model_id=EMBED_MODEL_ID,
-            service_endpoint=SERVICE_ENDPOINT,
-            compartment_id=COMPARTMENT_ID,
-        )
-
-        return embed_model
-
     @zipkin_span(service_name=AGENT_NAME, span_name="similarity_search")
     def invoke(self, input: State, config=None, **kwargs):
         """
@@ -99,15 +80,15 @@ class SemanticSearch(Runnable):
             logger.info("Search question: %s", standalone_question)
 
         try:
-            embed_model = self.get_embedding_model()
+            embed_model = get_embedding_model()
 
             # get a connection to the DB and init VS
             with self.get_connection() as conn:
-                v_store = OracleVS(
-                    client=conn,
-                    table_name=collection_name,
-                    distance_strategy=DistanceStrategy.COSINE,
-                    embedding_function=embed_model,
+
+                v_store = get_oracle_vs(
+                    conn=conn,
+                    collection_name=collection_name,
+                    embed_model=embed_model,
                 )
 
                 relevant_docs = v_store.similarity_search(
@@ -161,14 +142,13 @@ class SemanticSearch(Runnable):
         docs is a list of Langchain documents
         """
         try:
-            embed_model = self.get_embedding_model()
+            embed_model = get_embedding_model()
 
             with self.get_connection() as conn:
-                v_store = OracleVS(
-                    client=conn,
-                    table_name=collection_name,
-                    distance_strategy=DistanceStrategy.COSINE,
-                    embedding_function=embed_model,
+                v_store = get_oracle_vs(
+                    conn=conn,
+                    collection_name=collection_name,
+                    embed_model=embed_model,
                 )
                 v_store.add_documents(docs)
                 logger.info("Added docs to collection %s", collection_name)

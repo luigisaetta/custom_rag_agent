@@ -9,13 +9,10 @@ from typing import Annotated
 from pydantic import Field
 import oracledb
 from fastmcp import FastMCP
-from langchain_community.vectorstores.utils import DistanceStrategy
-from langchain_community.embeddings import OCIGenAIEmbeddings
-from langchain_community.vectorstores.oraclevs import OracleVS
 from utils import get_console_logger
+from oci_models import get_embedding_model, get_oracle_vs
 
 from config import DEBUG
-from config import AUTH, EMBED_MODEL_ID, SERVICE_ENDPOINT, COMPARTMENT_ID
 from config import TRANSPORT, HOST, PORT
 from config_private import CONNECT_ARGS
 
@@ -32,19 +29,6 @@ def get_connection():
     get a connection to the DB
     """
     return oracledb.connect(**CONNECT_ARGS)
-
-
-def get_embedding_model():
-    """
-    Create the Embedding Model
-    """
-    embed_model = OCIGenAIEmbeddings(
-        auth_type=AUTH,
-        model_id=EMBED_MODEL_ID,
-        service_endpoint=SERVICE_ENDPOINT,
-        compartment_id=COMPARTMENT_ID,
-    )
-    return embed_model
 
 
 @mcp.tool
@@ -72,21 +56,19 @@ def semantic_search(
 
         # get a connection to the DB and init VS
         with get_connection() as conn:
-            v_store = OracleVS(
-                client=conn,
-                table_name=collection_name,
-                distance_strategy=DistanceStrategy.COSINE,
-                embedding_function=embed_model,
+            v_store = get_oracle_vs(
+                conn=conn,
+                collection_name=collection_name,
+                embed_model=embed_model,
             )
-
             relevant_docs = v_store.similarity_search(query=query, k=top_k)
 
             if DEBUG:
-                logger.info("Result from similarity search:")
+                logger.info("Result from the similarity search:")
                 logger.info(relevant_docs)
 
     except Exception as e:
-        logger.error("Error in vector_store.invoke: %s", e)
+        logger.error("Error in MCP similarity search: %s", e)
         error = str(e)
         return {"error": error}
 

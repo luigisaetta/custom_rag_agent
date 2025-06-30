@@ -33,12 +33,13 @@ VECTOR_WALLET_DIR = "/Users/xxxx/Progetti/yyyyy/WALLET_VECTOR"
 
 
 CONNECT_ARGS = {
-    "user": VECTOR_DB_USER,
-    "password": VECTOR_DB_PWD,
-    "dsn": VECTOR_DSN,
+    # check that settings are correct for your environment
+    "user": "XXXXX",
+    "password": "YYYY",
+    "dsn": "aidb_medium",
     "config_dir": VECTOR_WALLET_DIR,
     "wallet_location": VECTOR_WALLET_DIR,
-    "wallet_password": VECTOR_WALLET_PWD,
+    "wallet_password": "xxxxxx",
 }
 
 # integration with APM
