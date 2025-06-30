@@ -33,7 +33,7 @@ from py_zipkin.zipkin import zipkin_span
 
 from agent_state import State
 from oci_models import get_embedding_model, get_oracle_vs
-from utils import get_console_logger
+from utils import get_console_logger, docs_serializable
 
 from config import (
     AGENT_NAME,
@@ -103,7 +103,10 @@ class SemanticSearch(Runnable):
             logger.error("Error in vector_store.invoke: %s", e)
             error = str(e)
 
-        return {"retriever_docs": relevant_docs, "error": error}
+        # docs_serializable(relevant_docs)
+        # convert the documents to a serializable format
+        # to support the API
+        return {"retriever_docs": docs_serializable(relevant_docs), "error": error}
 
     #
     #  Helper functions

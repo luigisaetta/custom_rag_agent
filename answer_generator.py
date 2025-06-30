@@ -68,7 +68,7 @@ class AnswerGenerator(Runnable):
         docs: list[Documents]
         """
         # more Pythonic
-        _context = "\n\n".join(doc.page_content for doc in docs)
+        _context = "\n\n".join(doc["page_content"] for doc in docs)
 
         return _context
 
