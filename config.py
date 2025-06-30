@@ -37,12 +37,12 @@ EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
 # this is the default model
 LLM_MODEL_ID = "meta.llama-3.3-70b-instruct"
 TEMPERATURE = 0.1
-MAX_TOKENS = 2048
+MAX_TOKENS = 4000
 
 # for the UI
 LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
 # replaced command-r with command-a
-MODEL_LIST = ["meta.llama-3.3-70b-instruct", "cohere.command-a-03-2025"]
+MODEL_LIST = ["xai.grok-3", "meta.llama-3.3-70b-instruct", "cohere.command-a-03-2025"]
 
 ENABLE_USER_FEEDBACK = True
 
@@ -52,7 +52,8 @@ TOP_K = 6
 COLLECTION_LIST = ["BOOKS"]
 
 # OCI general
-REGION = "eu-frankfurt-1"
+# REGION = "eu-frankfurt-1"
+REGION = "us-chicago-1"
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
 SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com"
 

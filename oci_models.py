@@ -1,7 +1,7 @@
 """
 File name: oci_models.py
 Author: Luigi Saetta
-Date last modified: 2025-03-31
+Date last modified: 2025-06-30
 Python Version: 3.11
 
 Description:
@@ -19,6 +19,8 @@ License:
 Notes:
     This is a part of a demo showing how to implement an advanced
     RAG solution as a LangGraph agent.
+
+    modifiued to support xAI and OpenAI models through Langchain
 
 Warnings:
     This module is in development, may change in future versions.
@@ -44,6 +46,24 @@ from config import (
 
 logger = get_console_logger()
 
+MODELS_WITHOUT_KWARGS = {
+    "openai.gpt-4o-search-preview",
+    "openai.gpt-4o-search-preview-2025-03-11",
+}
+
+
+def normalize_provider(model_id: str) -> str:
+    """
+    apply an hack to handle new models:
+    use meta as provider for these new models
+    """
+    _provider = model_id.split(".")[0]
+
+    if _provider in {"xai", "openai"}:
+        # Known LangChain limitation workaround
+        _provider = "meta"
+    return _provider
+
 
 def get_llm(model_id=LLM_MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_TOKENS):
     """
@@ -52,16 +72,26 @@ def get_llm(model_id=LLM_MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_TOKEN
     Returns:
         ChatOCIGenAI: An instance of the OCI GenAI language model.
     """
+    # try to identify the provider
+    _provider = normalize_provider(model_id)
+
+    if model_id not in MODELS_WITHOUT_KWARGS:
+        _model_kwargs = {
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+    else:
+        # for some models (OpenAI search) you cannot set those params
+        _model_kwargs = None
+
     llm = ChatOCIGenAI(
         auth_type=AUTH,
         model_id=model_id,
         service_endpoint=SERVICE_ENDPOINT,
         compartment_id=COMPARTMENT_ID,
         is_stream=True,
-        model_kwargs={
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        },
+        model_kwargs=_model_kwargs,
+        provider=_provider,
     )
     return llm
 
