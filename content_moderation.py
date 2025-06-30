@@ -30,7 +30,7 @@ from py_zipkin.zipkin import zipkin_span
 
 from agent_state import State
 from utils import get_console_logger
-from config import AGENT_NAME
+from config import AGENT_NAME, DEBUG
 
 logger = get_console_logger()
 
@@ -54,6 +54,9 @@ class ContentModerator(Runnable):
         """
         user_request = input["user_request"]
         error = None
+
+        if DEBUG:
+            logger.debug("ContentModerator: user_request=%s", user_request)
 
         # for now, do nothing
         return {"error": error}

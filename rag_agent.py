@@ -33,9 +33,6 @@ from query_rewriter import QueryRewriter
 from vector_search import SemanticSearch
 from reranker import Reranker
 from answer_generator import AnswerGenerator
-from utils import get_console_logger
-
-logger = get_console_logger()
 
 
 def create_workflow():

@@ -248,13 +248,13 @@ if question := st.chat_input("Hello, how can I help you?"):
                     # Stream
                     with st.chat_message(ASSISTANT):
                         response_container = st.empty()
-                        full_response = ""
+                        FULL_RESPONSE = ""
 
                         for chunk in answer_generator:
-                            full_response += chunk.content
-                            response_container.markdown(full_response + "▌")
+                            FULL_RESPONSE += chunk.content
+                            response_container.markdown(FULL_RESPONSE + "▌")
 
-                        response_container.markdown(full_response)
+                        response_container.markdown(FULL_RESPONSE)
 
                     elapsed_time = round((time.time() - time_start), 1)
                     logger.info("Elapsed time: %s sec.", elapsed_time)
@@ -268,7 +268,7 @@ if question := st.chat_input("Hello, how can I help you?"):
 
                 # Add user/assistant message to chat history
                 add_to_chat_history(HumanMessage(content=question))
-                add_to_chat_history(AIMessage(content=full_response))
+                add_to_chat_history(AIMessage(content=FULL_RESPONSE))
 
                 # get the feedback
                 if st.session_state.get_feedback:

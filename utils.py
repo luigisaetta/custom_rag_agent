@@ -95,7 +95,7 @@ def extract_json_from_text(text):
         # If no JSON content is found, raise an error
         raise ValueError("No JSON content found in the text.")
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format: {e}")
+        raise ValueError(f"Invalid JSON format: {e}") from e
 
 
 # for the loading utility
