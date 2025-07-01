@@ -42,12 +42,17 @@ MAX_TOKENS = 4000
 # for the UI
 LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
 # replaced command-r with command-a
-MODEL_LIST = ["xai.grok-3", "meta.llama-3.3-70b-instruct", "cohere.command-a-03-2025"]
+MODEL_LIST = [
+    "xai.grok-3",
+    "openai.gpt-4o",
+    "meta.llama-3.3-70b-instruct",
+    "cohere.command-a-03-2025",
+]
 
 ENABLE_USER_FEEDBACK = True
 
 # semantic search
-TOP_K = 6
+TOP_K = 10
 # COLLECTION_LIST = ["BOOKS", "CNAF"]
 COLLECTION_LIST = ["BOOKS"]
 DEFAULT_COLLECTION = "BOOKS"

@@ -27,7 +27,10 @@ Warnings:
 from datetime import datetime
 import oracledb
 
+from utils import get_console_logger
 from config_private import CONNECT_ARGS
+
+logger = get_console_logger()
 
 
 class RagFeedback:
@@ -44,6 +47,19 @@ class RagFeedback:
         """Establish the Oracle DB connection."""
         return oracledb.connect(**CONNECT_ARGS)
 
+    def table_exists(self, table_name: str) -> bool:
+        # utilizza USER_TABLES per lo schema corrente
+        sql = """
+            SELECT COUNT(*) 
+            FROM user_tables 
+            WHERE table_name = :tn
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, tn=table_name.upper())
+
+            return cursor.fetchone()[0] > 0
+
     def insert_feedback(self, question: str, answer: str, feedback: int):
         """Insert a new feedback record into RAG_FEEDBACK table."""
         if feedback < 1 or feedback > 5:
@@ -54,17 +70,21 @@ class RagFeedback:
             VALUES (:created_at, :question, :answer, :feedback)
         """
 
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
+        if self.table_exists("RAG_FEEDBACK"):
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
 
-            cursor.execute(
-                sql,
-                {
-                    "created_at": datetime.now(),
-                    "question": question,
-                    "answer": answer,
-                    "feedback": feedback,
-                },
-            )
-            conn.commit()
-            cursor.close()
+                cursor.execute(
+                    sql,
+                    {
+                        "created_at": datetime.now(),
+                        "question": question,
+                        "answer": answer,
+                        "feedback": feedback,
+                    },
+                )
+                conn.commit()
+                cursor.close()
+        else:
+            # table doesn't exists
+            logger.info("Table RAG_FEEDBACK doens't exist...")
