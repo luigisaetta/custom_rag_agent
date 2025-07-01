@@ -48,17 +48,38 @@ class RagFeedback:
         return oracledb.connect(**CONNECT_ARGS)
 
     def table_exists(self, table_name: str) -> bool:
-        # utilizza USER_TABLES per lo schema corrente
+        """
+        Check that the table exist in the current schema
+        """
         sql = """
             SELECT COUNT(*) 
             FROM user_tables 
             WHERE table_name = :tn
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, tn=table_name.upper())
+            with conn.cursor() as cursor:
+                cursor.execute(sql, tn=table_name.upper())
+                return cursor.fetchone()[0] > 0
 
-            return cursor.fetchone()[0] > 0
+    def _create_table(self):
+        """
+        Create the table if it doesn't exists
+        """
+        logger.info("Creating table RAG_FEEDBACK...")
+
+        ddl_instr = """
+        CREATE TABLE RAG_FEEDBACK (
+        ID         NUMBER GENERATED ALWAYS AS IDENTITY 
+                    (START WITH 1 INCREMENT BY 1) PRIMARY KEY,
+        CREATED_AT DATE   DEFAULT SYSDATE        NOT NULL,
+        QUESTION   CLOB                          NOT NULL,
+        ANSWER     CLOB                          NOT NULL,
+        FEEDBACK   NUMBER(2,0)                   NOT NULL
+        )
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(ddl_instr)
 
     def insert_feedback(self, question: str, answer: str, feedback: int):
         """Insert a new feedback record into RAG_FEEDBACK table."""
@@ -70,21 +91,22 @@ class RagFeedback:
             VALUES (:created_at, :question, :answer, :feedback)
         """
 
-        if self.table_exists("RAG_FEEDBACK"):
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-
-                cursor.execute(
-                    sql,
-                    {
-                        "created_at": datetime.now(),
-                        "question": question,
-                        "answer": answer,
-                        "feedback": feedback,
-                    },
-                )
-                conn.commit()
-                cursor.close()
-        else:
+        if not self.table_exists("RAG_FEEDBACK"):
             # table doesn't exists
-            logger.info("Table RAG_FEEDBACK doens't exist...")
+            logger.info("Table RAG_FEEDBACK doesn't exist...")
+            self._create_table()
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                sql,
+                {
+                    "created_at": datetime.now(),
+                    "question": question,
+                    "answer": answer,
+                    "feedback": feedback,
+                },
+            )
+            conn.commit()
+            cursor.close()

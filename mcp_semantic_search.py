@@ -94,6 +94,7 @@ def get_collections() -> list:
             ORDER BY 1 ASC"""
         )
         collections = [row[0] for row in cursor.fetchall()]
+
         return collections
 
 
