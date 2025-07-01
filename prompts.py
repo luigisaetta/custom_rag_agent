@@ -29,7 +29,7 @@ You're an AI assistant. Given a user request and a chat history reformulate the 
 in a standalone question using the chat history.
 
 Constraints:
-- return only the standalone question, do not add any other text.
+- return only the standalone question, do not add any other text or comment.
 
 User request: {user_request}
 Chat history: {chat_history}

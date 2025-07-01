@@ -39,15 +39,29 @@ LLM_MODEL_ID = "meta.llama-3.3-70b-instruct"
 TEMPERATURE = 0.1
 MAX_TOKENS = 4000
 
+# OCI general
+REGION = "eu-frankfurt-1"
+# REGION = "us-chicago-1"
+COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
+SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com"
+
 # for the UI
 LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
 # replaced command-r with command-a
-MODEL_LIST = [
-    "xai.grok-3",
-    "openai.gpt-4o",
-    "meta.llama-3.3-70b-instruct",
-    "cohere.command-a-03-2025",
-]
+
+if REGION == "us-chicago-1":
+    # for now only available in chicago region
+    MODEL_LIST = [
+        "xai.grok-3",
+        "openai.gpt-4o",
+        "meta.llama-3.3-70b-instruct",
+        "cohere.command-a-03-2025",
+    ]
+else:
+    MODEL_LIST = [
+        "meta.llama-3.3-70b-instruct",
+        "cohere.command-a-03-2025",
+    ]
 
 ENABLE_USER_FEEDBACK = True
 
@@ -57,11 +71,6 @@ TOP_K = 10
 COLLECTION_LIST = ["BOOKS"]
 DEFAULT_COLLECTION = "BOOKS"
 
-# OCI general
-# REGION = "eu-frankfurt-1"
-REGION = "us-chicago-1"
-COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
-SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com"
 
 # history management (put -1 if you want to disable trimming)
 # consider that we have pair (human, ai) so use an even (ex: 6) value

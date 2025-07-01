@@ -2,7 +2,7 @@
 File name: assistant_ui.py
 Author: Luigi Saetta
 Date created: 2024-12-04
-Date last modified: 2025-03-31
+Date last modified: 2025-07-01
 Python Version: 3.11
 
 Description:
@@ -142,13 +142,14 @@ if st.sidebar.button("Clear Chat History"):
 
 st.sidebar.header("Options")
 
+st.sidebar.text_input(label="Region", value=config.REGION, disabled=True)
+
 # the collection used for semantic search
 st.session_state.collection_name = st.sidebar.selectbox(
     "Collection name",
     config.COLLECTION_LIST,
 )
 
-# add the choice of LLM (not used for now)
 st.session_state.main_language = st.sidebar.selectbox(
     "Select the language for the answer",
     config.LANGUAGE_LIST,
