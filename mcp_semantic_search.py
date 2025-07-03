@@ -9,13 +9,14 @@ from typing import Annotated
 from pydantic import Field
 import oracledb
 from fastmcp import FastMCP
-import jwt
+
 from utils import get_console_logger
+from jwt_utils import verify_jwt_token
 from oci_models import get_embedding_model, get_oracle_vs
 
 from config import DEBUG
 from config import TRANSPORT, HOST, PORT
-from config_private import CONNECT_ARGS, JWT_SECRET, JWT_ALGORITHM
+from config_private import CONNECT_ARGS
 
 logger = get_console_logger()
 
@@ -30,20 +31,6 @@ def get_connection():
     get a connection to the DB
     """
     return oracledb.connect(**CONNECT_ARGS)
-
-
-def verify_jwt(token: str) -> None:
-    """
-    Raise an exception if the JWT token is invalid.
-    """
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-
-        # here we should check the content of payload
-        logger.info("Paylod from token: ", payload)
-    except jwt.PyJWTError as exc:
-        logger.error("Invalid token: %s", exc)
-        raise ValueError("Unauthorized request!") from exc
 
 
 @mcp.tool
@@ -68,7 +55,7 @@ def semantic_search(
         dict: a dictionary containing the relevant documents.
     """
     # check that a valid JWT is provided
-    verify_jwt(token)
+    verify_jwt_token(token)
 
     try:
         # must be the same embedding model used during load in the Vector Store
@@ -105,7 +92,7 @@ def get_collections(token: Annotated[str, Field(description="JWT token")]) -> li
         list: A list of collection names.
     """
     # check that a valid JWT is provided
-    verify_jwt(token)
+    verify_jwt_token(token)
 
     with get_connection() as conn:
         cursor = conn.cursor()

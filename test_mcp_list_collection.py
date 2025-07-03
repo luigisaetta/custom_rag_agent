@@ -4,11 +4,9 @@ Test Semantic Search...
 
 import asyncio
 import json
-from datetime import datetime, timedelta
 from fastmcp import Client
-import jwt
+from jwt_utils import create_jwt_token
 import config
-from config_private import JWT_SECRET, JWT_ALGORITHM
 
 ENDPOINT = f"http://localhost:{config.PORT}/mcp/"
 
@@ -16,23 +14,9 @@ ENDPOINT = f"http://localhost:{config.PORT}/mcp/"
 client = Client(ENDPOINT)
 
 
-def create_token(user="test-user"):
-    """
-    create a JWT token
-    """
-    payload = {
-        "sub": user,  # subject (any string identifying the user)
-        "exp": datetime.utcnow() + timedelta(hours=1),  # token expires in one hour
-    }
-    # show how to create a valid JWT token
-    _token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-    return _token
-
-
 async def main():
     """
-    Main function to demonstrate the semantic search tool.
+    Main function to demonstrate the Semantic Search tool.
     """
     async with client:
         # getthe list of available tools
@@ -54,7 +38,8 @@ async def main():
         print("")
 
         # create the JWT token
-        token = create_token()
+        # can pass a user here
+        token = create_jwt_token()
 
         results = await client.call_tool(
             "get_collections",
