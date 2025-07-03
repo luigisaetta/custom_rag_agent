@@ -15,7 +15,7 @@ License:
     This code is released under the MIT License.
 
 Notes:
-    This is part of a  demo fro a RAG solution implemented
+    This is part of a  demo for a RAG solution implemented
     using LangGraph
 
 Warnings:

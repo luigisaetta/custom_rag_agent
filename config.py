@@ -1,7 +1,7 @@
 """
 File name: config.py
 Author: Luigi Saetta
-Date last modified: 2025-03-31
+Date last modified: 2025-07-02
 Python Version: 3.11
 
 Description:
@@ -40,8 +40,8 @@ TEMPERATURE = 0.1
 MAX_TOKENS = 4000
 
 # OCI general
-REGION = "eu-frankfurt-1"
-# REGION = "us-chicago-1"
+# REGION = "eu-frankfurt-1"
+REGION = "us-chicago-1"
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
 SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com"
 
@@ -53,6 +53,7 @@ if REGION == "us-chicago-1":
     # for now only available in chicago region
     MODEL_LIST = [
         "xai.grok-3",
+        "openai.gpt-4.1",
         "openai.gpt-4o",
         "meta.llama-3.3-70b-instruct",
         "cohere.command-a-03-2025",

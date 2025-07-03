@@ -44,3 +44,7 @@ CONNECT_ARGS = {
 
 # integration with APM
 APM_PUBLIC_KEY = "123456789PM"
+
+# to add JWT to MCP
+JWT_SECRET = "your-secret"
+JWT_ALGORITHM = "HS256"

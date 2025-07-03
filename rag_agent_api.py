@@ -3,6 +3,7 @@ RAG Agent API
 
 Expose the RAG agent as a REST API using FastAPI
 
+For now it is not supporting chat_history
 """
 
 import uuid

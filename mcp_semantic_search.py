@@ -9,12 +9,13 @@ from typing import Annotated
 from pydantic import Field
 import oracledb
 from fastmcp import FastMCP
+import jwt
 from utils import get_console_logger
 from oci_models import get_embedding_model, get_oracle_vs
 
 from config import DEBUG
 from config import TRANSPORT, HOST, PORT
-from config_private import CONNECT_ARGS
+from config_private import CONNECT_ARGS, JWT_SECRET, JWT_ALGORITHM
 
 logger = get_console_logger()
 
@@ -31,8 +32,23 @@ def get_connection():
     return oracledb.connect(**CONNECT_ARGS)
 
 
+def verify_jwt(token: str) -> None:
+    """
+    Raise an exception if the JWT token is invalid.
+    """
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # here we should check the content of payload
+        logger.info("Paylod from token: ", payload)
+    except jwt.PyJWTError as exc:
+        logger.error("Invalid token: %s", exc)
+        raise ValueError("Unauthorized request!") from exc
+
+
 @mcp.tool
 def semantic_search(
+    token: Annotated[str, Field(description="JWT token")],
     query: Annotated[
         str, Field(description="The search query to find relevant documents.")
     ],
@@ -44,12 +60,16 @@ def semantic_search(
     """
     Perform a semantic search based on the provided query.
     Args:
+        token: the JWT token
         query (str): The search query.
         top_k (int): The number of top results to return.
         collection_name (str): The name of the collection (DB table) to search in.
     Returns:
         dict: a dictionary containing the relevant documents.
     """
+    # check that a valid JWT is provided
+    verify_jwt(token)
+
     try:
         # must be the same embedding model used during load in the Vector Store
         embed_model = get_embedding_model()
@@ -78,12 +98,15 @@ def semantic_search(
 
 
 @mcp.tool
-def get_collections() -> list:
+def get_collections(token: Annotated[str, Field(description="JWT token")]) -> list:
     """
     Get the list of collections (DB tables) available in the Oracle Vector Store.
     Returns:
         list: A list of collection names.
     """
+    # check that a valid JWT is provided
+    verify_jwt(token)
+
     with get_connection() as conn:
         cursor = conn.cursor()
 
