@@ -18,6 +18,15 @@ async def main():
     """
     Main function to demonstrate the semantic search tool.
     """
+    # create the JWT token
+    # can pass a user here
+    if config.ENABLE_JWT_TOKEN:
+        token = create_jwt_token()
+        client = Client(ENDPOINT, auth=token)
+    else:
+        token = ""
+        client = Client(ENDPOINT)
+
     async with client:
         print("")
         print("\nCalling semantic_search tool...")
@@ -25,14 +34,9 @@ async def main():
 
         query = "What is Oracle AI Vector Search?"
 
-        # create the JWT token
-        # can pass a user here
-        token = create_jwt_token()
-
         results = await client.call_tool(
             "semantic_search",
             {
-                "token": token,
                 "query": query,
                 "top_k": 5,
                 "collection_name": "BOOKS",

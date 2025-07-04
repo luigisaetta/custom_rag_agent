@@ -30,8 +30,9 @@ DEBUG = False
 AUTH = "API_KEY"
 
 # embeddings
-EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
+# EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
 # EMBED_MODEL_ID = "cohere.embed-multilingual-image-v3.0"
+EMBED_MODEL_ID = "cohere.embed-v4.0"
 
 # LLM
 # this is the default model
@@ -67,7 +68,7 @@ else:
 ENABLE_USER_FEEDBACK = True
 
 # semantic search
-TOP_K = 10
+TOP_K = 6
 # COLLECTION_LIST = ["BOOKS", "CNAF"]
 COLLECTION_LIST = ["BOOKS"]
 DEFAULT_COLLECTION = "BOOKS"
@@ -88,10 +89,11 @@ APM_BASE_URL = "https://aaaadec2jjn3maaaaaaaaach4e.apm-agt.eu-frankfurt-1.oci.or
 APM_CONTENT_TYPE = "application/json"
 
 # for loading
-CHUNK_SIZE = 2000
+CHUNK_SIZE = 4000
 CHUNK_OVERLAP = 100
 
 # for MCP server
 TRANSPORT = "streamable-http"
 HOST = "0.0.0.0"
 PORT = 9000
+ENABLE_JWT_TOKEN = True
