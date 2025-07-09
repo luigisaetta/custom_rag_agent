@@ -7,6 +7,8 @@ import numpy as np
 from langchain_core.embeddings import Embeddings
 import requests
 
+ALLOWED_DIMS = {384, 512, 768, 1024, 2048}
+
 
 class CustomRESTEmbeddings(Embeddings):
     """
@@ -16,18 +18,27 @@ class CustomRESTEmbeddings(Embeddings):
         https://docs.api.nvidia.com/nim/reference/nvidia-llama-3_2-nv-embedqa-1b-v2-infer
     """
 
-    def __init__(self, api_url: str, model: str, batch_size: int = 10):
+    def __init__(self, api_url: str, model: str, batch_size: int = 10, dimensions=2048):
         """
         Init
 
         as of now, no security
         args:
             api_url: the endpoint
-            mode: the model id string
+            model: the model id string
+            batch_size
+            dimensions: dim of the embedding vector
         """
         self.api_url = api_url
         self.model = model
         self.batch_size = batch_size
+        self.dimensions = dimensions
+
+        # Validation at init time (optional)
+        if self.dimensions is not None and self.dimensions not in ALLOWED_DIMS:
+            raise ValueError(
+                f"Invalid dimensions {self.dimensions!r}: must be one of {sorted(ALLOWED_DIMS)}"
+            )
 
     def embed_documents(
         self,
@@ -35,7 +46,6 @@ class CustomRESTEmbeddings(Embeddings):
         # must be passage and not document
         input_type: str = "passage",
         truncate: str = "NONE",
-        dimensions=2048,
     ) -> List[List[float]]:
         """
         Embed a list of documents using batching.
@@ -52,7 +62,7 @@ class CustomRESTEmbeddings(Embeddings):
                     "input": batch,
                     "input_type": input_type,
                     "truncate": truncate,
-                    "dimensions": dimensions,
+                    "dimensions": self.dimensions,
                 },
                 timeout=30,
             )
@@ -64,13 +74,11 @@ class CustomRESTEmbeddings(Embeddings):
             all_embeddings.extend(item["embedding"] for item in data)
         return all_embeddings
 
-    def embed_query(self, text: str, dimensions=2048) -> List[float]:
+    def embed_query(self, text: str) -> List[float]:
         """
         Embed the query (a str)
         """
-        return self.embed_documents([text], input_type="query", dimensions=dimensions)[
-            0
-        ]
+        return self.embed_documents([text], input_type="query")[0]
 
 
 #
@@ -79,7 +87,7 @@ class CustomRESTEmbeddings(Embeddings):
 API_URL = "http://130.61.225.137:8000/v1/embeddings"
 MODEL_ID = "nvidia/llama-3.2-nv-embedqa-1b-v2"
 
-embed_model = CustomRESTEmbeddings(api_url=API_URL, model=MODEL_ID)
+embed_model = CustomRESTEmbeddings(api_url=API_URL, model=MODEL_ID, dimensions=1024)
 
 QUERY = "Who is Larry Ellison?"
 
