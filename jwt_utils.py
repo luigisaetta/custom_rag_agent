@@ -1,5 +1,4 @@
 """
-jwt utils:
 Utility to encode, decode JWT tokens.
 
 With these functions you can create a valid JWT token and decode (and check it is valid).
@@ -7,6 +6,8 @@ With these functions you can create a valid JWT token and decode (and check it i
 You need a shared JWT_SECRET (see config_private.py)
 
 It is used in the implementation of the MCP server.
+
+These function must be used if you are not using OCI Iam to issue the JWT token
 """
 
 from datetime import datetime, timedelta

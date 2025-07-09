@@ -24,7 +24,7 @@ Warnings:
     This module is in development, may change in future versions.
 """
 
-DEBUG = False
+DEBUG = True
 
 # type of auth
 AUTH = "API_KEY"
@@ -96,4 +96,10 @@ CHUNK_OVERLAP = 100
 TRANSPORT = "streamable-http"
 HOST = "0.0.0.0"
 PORT = 9000
+# with this we can toggle JWT token auth
 ENABLE_JWT_TOKEN = True
+# for JWT token with OCI
+IAM_BASE_URL = "https://idcs-930d7b2ea2cb46049963ecba3049f509.identity.oraclecloud.com"
+# these are used during the verification of the token
+ISSUER = "https://identity.oraclecloud.com/"
+AUDIENCE = ["urn:opc:lbaas:logicalguid=idcs-930d7b2ea2cb46049963ecba3049f509"]

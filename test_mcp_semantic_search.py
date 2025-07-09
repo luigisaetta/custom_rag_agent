@@ -10,9 +10,6 @@ import config
 
 ENDPOINT = f"http://localhost:{config.PORT}/mcp/"
 
-# The Client uses StreamableHttpTransport for HTTP URLs
-client = Client(ENDPOINT)
-
 
 async def main():
     """

@@ -10,14 +10,21 @@ This repository contains the code for the development of a **custom RAG Agent**,
 
 Design decisions:
 * For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
-* Reranker is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
+* **Reranker** is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
 * The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
 * UI implemented using **Streamlit**
+* **Semantic Search** is also exposed as a [MCP server](./mcp_semantic_search_with_iam.py) 
 
 Streaming:
 * Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
 For example, links to the documentation' chunks are displayed before the final answer is ready.
 * Streaming of the final answer.
+
+MCP support:
+(07/2025) I have added an implementation of an **MCP** server that exposes the Semantic Search feature.
+Security can be handled in two ways:
+* custom: generate the **JWT token** using PyJWT
+* OCI: generate the JWT token using OCI IAM
 
 ## Status
 It is **wip**.
@@ -35,3 +42,5 @@ For example, to ensure that final responses do not disclose Personally Identifia
 * use Python 3.11
 * use the requirements.txt
 * create your config_private.py using the template provided
+* for MCP server: create a confidential application in OCI IAM
+
