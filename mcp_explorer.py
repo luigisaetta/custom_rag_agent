@@ -1,7 +1,7 @@
 """
 Explore an MCP serer and get list and description of tools.
 
-The sever must be accessible through HTTP streaming.
+The server must be accessible through HTTP streaming.
 """
 
 import asyncio

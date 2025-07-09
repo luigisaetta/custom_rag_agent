@@ -10,6 +10,7 @@ from typing import Annotated
 from pydantic import Field
 
 from fastmcp import FastMCP
+
 # to verify the JWT token
 from fastmcp.server.auth import BearerAuthProvider
 from fastmcp.server.dependencies import get_http_headers
