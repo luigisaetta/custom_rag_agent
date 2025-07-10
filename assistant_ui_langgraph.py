@@ -208,6 +208,7 @@ if question := st.chat_input("Hello, how can I help you?"):
                     agent_config = {
                         "configurable": {
                             "model_id": st.session_state.model_id,
+                            "embed_model_type": config.EMBED_MODEL_TYPE,
                             "enable_reranker": st.session_state.enable_reranker,
                             "enable_tracing": config.ENABLE_TRACING,
                             "main_language": st.session_state.main_language,

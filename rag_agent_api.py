@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from rag_agent import create_workflow
 from agent_state import State
 from utils import get_console_logger
-from config import DEBUG, DEFAULT_COLLECTION, LLM_MODEL_ID
+from config import DEBUG, DEFAULT_COLLECTION, LLM_MODEL_ID, EMBED_MODEL_TYPE
 
 MEDIA_TYPE = "application/json"
 
@@ -91,6 +91,7 @@ async def invoke(request: InvokeRequest):
     _config = {
         "configurable": {
             "model_id": LLM_MODEL_ID,
+            "embed_model_type": EMBED_MODEL_TYPE,
             "enable_reranker": True,
             "enable_tracing": False,
             "collection_name": DEFAULT_COLLECTION,

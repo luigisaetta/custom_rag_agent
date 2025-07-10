@@ -24,15 +24,22 @@ Warnings:
     This module is in development, may change in future versions.
 """
 
-DEBUG = True
+DEBUG = False
 
 # type of auth
 AUTH = "API_KEY"
 
 # embeddings
+# added this to distinguish between Cohere end REST NVIDIA models
+# can be OCI or NVIDIA
+EMBED_MODEL_TYPE = "NVIDIA"
 # EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
 # EMBED_MODEL_ID = "cohere.embed-multilingual-image-v3.0"
-EMBED_MODEL_ID = "cohere.embed-v4.0"
+# EMBED_MODEL_ID = "cohere.embed-v4.0"
+
+# to support NVIDIA NIM
+NVIDIA_EMBED_MODEL_URL = "http://130.61.225.137:8000/v1/embeddings"
+EMBED_MODEL_ID = "nvidia/llama-3.2-nv-embedqa-1b-v2"
 
 # LLM
 # this is the default model

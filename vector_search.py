@@ -39,6 +39,7 @@ from config import (
     AGENT_NAME,
     DEBUG,
     TOP_K,
+    EMBED_MODEL_TYPE
 )
 
 from config_private import CONNECT_ARGS
@@ -70,6 +71,8 @@ class SemanticSearch(Runnable):
         input: the agent state
         """
         collection_name = config["configurable"]["collection_name"]
+        # (07/2025) added to support NVIDIA mbeddings
+        embed_model_type = config["configurable"]["embed_model_type"]
 
         relevant_docs = []
         error = None
@@ -80,7 +83,7 @@ class SemanticSearch(Runnable):
             logger.info("Search question: %s", standalone_question)
 
         try:
-            embed_model = get_embedding_model()
+            embed_model = get_embedding_model(embed_model_type)
 
             # get a connection to the DB and init VS
             with self.get_connection() as conn:
@@ -145,7 +148,7 @@ class SemanticSearch(Runnable):
         docs is a list of Langchain documents
         """
         try:
-            embed_model = get_embedding_model()
+            embed_model = get_embedding_model(EMBED_MODEL_TYPE)
 
             with self.get_connection() as conn:
                 v_store = get_oracle_vs(
