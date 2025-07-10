@@ -19,7 +19,7 @@ from utils import get_console_logger
 from jwt_utils import get_token_from_headers, verify_jwt_token
 from oci_models import get_embedding_model, get_oracle_vs
 
-from config import DEBUG
+from config import DEBUG, EMBED_MODEL_TYPE
 from config import TRANSPORT, HOST, PORT, ENABLE_JWT_TOKEN
 from config_private import CONNECT_ARGS
 
@@ -73,7 +73,7 @@ def semantic_search(
 
     try:
         # must be the same embedding model used during load in the Vector Store
-        embed_model = get_embedding_model()
+        embed_model = get_embedding_model(EMBED_MODEL_TYPE)
 
         # get a connection to the DB and init VS
         with get_connection() as conn:

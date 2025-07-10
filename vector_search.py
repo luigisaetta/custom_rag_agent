@@ -35,12 +35,7 @@ from agent_state import State
 from oci_models import get_embedding_model, get_oracle_vs
 from utils import get_console_logger, docs_serializable
 
-from config import (
-    AGENT_NAME,
-    DEBUG,
-    TOP_K,
-    EMBED_MODEL_TYPE
-)
+from config import AGENT_NAME, DEBUG, TOP_K, EMBED_MODEL_TYPE
 
 from config_private import CONNECT_ARGS
 
