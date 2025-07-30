@@ -24,10 +24,10 @@ For example, links to the documentation' chunks are displayed before the final a
 (07/2025) I have added an implementation of an **MCP** server that exposes the Semantic Search feature.
 Security can be handled in two ways:
 * custom: generate the **JWT token** using PyJWT
-* OCI: generate the JWT token using OCI IAM
+* OCI: generate the JWT token using **OCI IAM**
 
 ## Status
-It is **wip**.
+It is **WIP**.
 
 ## References
 * [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)
