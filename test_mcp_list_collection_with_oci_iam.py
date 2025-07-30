@@ -14,6 +14,9 @@ logger = get_console_logger()
 # this is the endpoint of the MCP server
 ENDPOINT = f"http://localhost:{PORT}/mcp/"
 
+# the ocid of the sclient_secret, stored in the OCI vault
+SECRET_OCID = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
+
 
 # The MCP Client uses StreamableHttpTransport for HTTP URLs
 async def main():
@@ -25,7 +28,6 @@ async def main():
     # these are used in verification
     # these is depending from the tenant
     # the ocid of the secret in the vault
-    secret_ocid = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
 
     # create the JWT token
     # can pass a user here
@@ -38,7 +40,7 @@ async def main():
         print("Getting JWT token...")
         print("")
 
-        client_4_token = OCIJWTClient(IAM_BASE_URL, scope, secret_ocid)
+        client_4_token = OCIJWTClient(IAM_BASE_URL, scope, SECRET_OCID)
 
         token, _, _ = client_4_token.get_token()
 

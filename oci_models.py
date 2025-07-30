@@ -48,6 +48,8 @@ from config import (
 
 logger = get_console_logger()
 
+ALLOWED_EMBED_MODELS_TYPE = {"OCI", "NVIDIA"}
+
 MODELS_WITHOUT_KWARGS = {
     "openai.gpt-4o-search-preview",
     "openai.gpt-4o-search-preview-2025-03-11",
@@ -104,8 +106,7 @@ def get_embedding_model(model_type="OCI"):
     Returns:
         OCIGenAIEmbeddings: An instance of the OCI GenAI embeddings model.
     """
-    ALLOWED_EMBED_MODELS_TYPE = {"OCI", "NVIDIA"}
-
+    # check model type
     if model_type not in ALLOWED_EMBED_MODELS_TYPE:
         raise ValueError(
             f"Invalid value for model_type: must be one of {ALLOWED_EMBED_MODELS_TYPE}"

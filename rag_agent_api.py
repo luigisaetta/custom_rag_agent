@@ -81,7 +81,7 @@ async def stream_graph_updates(user_input: str, config=None):
 @app.post("/invoke")
 async def invoke(request: InvokeRequest):
     """
-    POST endpoint to interact with the Deep Research agent.
+    POST endpoint to interact with the agent.
     Args:
         request (InvokeRequest): Contains the user_input as JSON body.
     Returns:

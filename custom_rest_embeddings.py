@@ -14,6 +14,9 @@ ALLOWED_DIMS = {384, 512, 768, 1024, 2048}
 ALLOWED_INPUT_TYPES = {"passage", "query"}
 ALLOWED_TRUNCATE_VALUES = {"NONE", "START", "END"}
 
+# list of models with tunable dimensions
+MATRIOSKA_MODELS = {"nvidia/llama-3.2-nv-embedqa-1b-v2"}
+
 logger = get_console_logger()
 
 
@@ -39,7 +42,12 @@ class CustomRESTEmbeddings(Embeddings):
         self.api_url = api_url
         self.model = model
         self.batch_size = batch_size
-        self.dimensions = dimensions
+
+        if self.model in MATRIOSKA_MODELS:
+            self.dimensions = dimensions
+        else:
+            # changing dimensions is not supported
+            self.dimensions = None
 
         # Validation at init time
         if self.dimensions is not None and self.dimensions not in ALLOWED_DIMS:
@@ -76,15 +84,26 @@ class CustomRESTEmbeddings(Embeddings):
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i : i + self.batch_size]
             # process a single batch
-            resp = requests.post(
-                self.api_url,
-                json={
+            if self.model in MATRIOSKA_MODELS:
+                json_request = {
                     "model": self.model,
                     "input": batch,
                     "input_type": input_type,
                     "truncate": truncate,
                     "dimensions": self.dimensions,
-                },
+                }
+            else:
+                json_request = {
+                    "model": self.model,
+                    "input": batch,
+                    "input_type": input_type,
+                    "truncate": truncate,
+                    "dimensions": self.dimensions,
+                }
+
+            resp = requests.post(
+                self.api_url,
+                json=json_request,
                 timeout=30,
             )
             resp.raise_for_status()

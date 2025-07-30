@@ -32,14 +32,14 @@ AUTH = "API_KEY"
 # embeddings
 # added this to distinguish between Cohere end REST NVIDIA models
 # can be OCI or NVIDIA
-EMBED_MODEL_TYPE = "NVIDIA"
-# EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
+EMBED_MODEL_TYPE = "OCI"
+EMBED_MODEL_ID = "cohere.embed-multilingual-v3.0"
 # EMBED_MODEL_ID = "cohere.embed-multilingual-image-v3.0"
 # EMBED_MODEL_ID = "cohere.embed-v4.0"
 
 # to support NVIDIA NIM
 NVIDIA_EMBED_MODEL_URL = "http://130.61.225.137:8000/v1/embeddings"
-EMBED_MODEL_ID = "nvidia/llama-3.2-nv-embedqa-1b-v2"
+# EMBED_MODEL_ID = "nvidia/llama-3.2-nv-embedqa-1b-v2"
 
 # LLM
 # this is the default model
@@ -61,6 +61,7 @@ if REGION == "us-chicago-1":
     # for now only available in chicago region
     MODEL_LIST = [
         "xai.grok-3",
+        "xai.grok-4",
         "openai.gpt-4.1",
         "openai.gpt-4o",
         "meta.llama-3.3-70b-instruct",
@@ -77,7 +78,7 @@ ENABLE_USER_FEEDBACK = True
 # semantic search
 TOP_K = 6
 # COLLECTION_LIST = ["BOOKS", "CNAF"]
-COLLECTION_LIST = ["BOOKS"]
+COLLECTION_LIST = ["BOOKS", "BOOKS2", "AMPLIFON", "AMPLIFON_EXT"]
 DEFAULT_COLLECTION = "BOOKS"
 
 
