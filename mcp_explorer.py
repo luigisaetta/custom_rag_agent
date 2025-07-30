@@ -8,6 +8,17 @@ import asyncio
 import streamlit as st
 from fastmcp import Client
 
+from oci_jwt_client import OCIJWTClient
+from utils import get_console_logger
+from config import DEBUG, ENABLE_JWT_TOKEN, IAM_BASE_URL
+
+# the ocid of the sclient_secret, stored in the OCI vault
+SECRET_OCID = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
+# the scope for the JWT token
+SCOPE = "urn:opc:idm:__myscopes__"
+
+logger = get_console_logger()
+
 st.set_page_config(page_title="MCP Explorer", layout="wide")
 st.title("🚀 MCP Tool Explorer")
 
@@ -27,7 +38,31 @@ async def fetch_tools():
     """
     This function call the MCP sevrer to get list and descriptions of tools
     """
-    async with Client(server_url, timeout=TIMEOUT) as client:
+    if ENABLE_JWT_TOKEN:
+        # this is a client to OCI IAM to get the JWT token
+        logger.info("----------------------------")
+        logger.info("--- Using JWT based auth ---")
+        logger.info("----------------------------")
+        logger.info("Getting JWT token...")
+
+        client_4_token = OCIJWTClient(IAM_BASE_URL, SCOPE, SECRET_OCID)
+
+        token, _, _ = client_4_token.get_token()
+
+        if DEBUG:
+            logger.info("Token: %s", token)
+            logger.info("Scope: %s", SCOPE)
+            logger.info("IAM Base URL: %s", IAM_BASE_URL)
+
+        logger.info("")
+
+        client = Client(server_url, auth=token, timeout=TIMEOUT)
+    else:
+        client = Client(server_url, timeout=TIMEOUT)
+
+    async with client:
+        # get the list of available tools
+        logger.info("Fetching tools from MCP server...")
         return await client.list_tools()
 
 
@@ -53,7 +88,6 @@ elif st.session_state.tools:
             st.markdown(f"### **{t.name}**")
             if t.description:
                 st.write(t.description)
-            # st.write(t)
             if t.inputSchema:
                 with st.expander("📘 Input Schema"):
                     st.json(t.inputSchema)
