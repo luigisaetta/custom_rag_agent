@@ -39,6 +39,18 @@ logger = get_console_logger()
 #
 # Supporting functions
 #
+def list_collections():
+    """
+    return a list of all collections (tables) with a type vector
+    in the schema in use
+    """
+    _search = SemanticSearch()
+
+    _collections_list = _search.list_collections()
+
+    # reorder
+    return sorted(_collections_list)
+
 def list_books(_collection_name):
     """
     return the list of books in the given collection
@@ -81,7 +93,7 @@ def on_selection_change():
 
 st.session_state.collection_name = st.sidebar.selectbox(
     "Collection name",
-    COLLECTION_LIST,
+    list_collections(),
     key="name_selected",
     on_change=on_selection_change,
 )
