@@ -12,8 +12,9 @@ import streamlit as st
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config import DEBUG, COLLECTION_LIST
-from vector_search import SemanticSearch
 from chunk_index_utils import load_and_split_pdf, load_and_split_docx
+from vector_search import SemanticSearch
+from db_utils import list_collections, list_books_in_collection
 from utils import get_console_logger
 
 # init session
@@ -39,25 +40,11 @@ logger = get_console_logger()
 #
 # Supporting functions
 #
-def list_collections():
-    """
-    return a list of all collections (tables) with a type vector
-    in the schema in use
-    """
-    _search = SemanticSearch()
-
-    _collections_list = _search.list_collections()
-
-    # reorder
-    return sorted(_collections_list)
-
 def list_books(_collection_name):
     """
     return the list of books in the given collection
     """
-    _search = SemanticSearch()
-
-    _books_list = _search.list_books_in_collection(collection_name=_collection_name)
+    _books_list = list_books_in_collection(collection_name=_collection_name)
 
     # reorder
     return sorted(_books_list)

@@ -13,15 +13,14 @@ from pydantic import Field
 
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
-import oracledb
 
 from utils import get_console_logger
 from jwt_utils import get_token_from_headers, verify_jwt_token
 from oci_models import get_embedding_model, get_oracle_vs
+from db_utils import get_connection, list_collections
 
 from config import DEBUG, EMBED_MODEL_TYPE
 from config import TRANSPORT, HOST, PORT, ENABLE_JWT_TOKEN
-from config_private import CONNECT_ARGS
 
 logger = get_console_logger()
 
@@ -31,11 +30,22 @@ mcp = FastMCP("Demo Semantic Search as MCP server")
 #
 # Helper functions
 #
-def get_connection():
+def validate_token():
     """
-    get a connection to the DB
+    Validate the JWT token if enabled
     """
-    return oracledb.connect(**CONNECT_ARGS)
+    headers = get_http_headers(include_all=True)
+
+    # check that a valid JWT is provided
+    if ENABLE_JWT_TOKEN:
+        if DEBUG:
+            logger.info("Headers: %s", headers)
+
+        # the header has the format: Bearer <token>
+        token = get_token_from_headers(headers)
+        logger.info("Received auth header: %s", token)
+
+        verify_jwt_token(token)
 
 
 @mcp.tool
@@ -58,18 +68,7 @@ def semantic_search(
         dict: a dictionary containing the relevant documents.
     """
     # to handle auth using JWT tokens
-    headers = get_http_headers(include_all=True)
-
-    # check that a valid JWT is provided
-    if ENABLE_JWT_TOKEN:
-        if DEBUG:
-            logger.info("Headers: %s", headers)
-
-        # the header has the format: Bearer <token>
-        token = get_token_from_headers(headers)
-        logger.info("Received auth header: %s", token)
-
-        verify_jwt_token(token)
+    validate_token()
 
     try:
         # must be the same embedding model used during load in the Vector Store
@@ -106,30 +105,9 @@ def get_collections() -> list:
         list: A list of collection names.
     """
     # to handle auth using JWT tokens
-    headers = get_http_headers(include_all=True)
+    validate_token()
 
-    # check that a valid JWT is provided
-    if ENABLE_JWT_TOKEN:
-        if DEBUG:
-            logger.info("Headers: %s", headers)
-
-        token = get_token_from_headers(headers)
-        logger.info("Received auth header: %s", token)
-
-        verify_jwt_token(token)
-
-    with get_connection() as conn:
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """SELECT DISTINCT utc.table_name
-            FROM user_tab_columns utc
-            WHERE utc.data_type = 'VECTOR'
-            ORDER BY 1 ASC"""
-        )
-        collections = [row[0] for row in cursor.fetchall()]
-
-        return collections
+    return list_collections()
 
 
 if __name__ == "__main__":

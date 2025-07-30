@@ -109,57 +109,6 @@ class SemanticSearch(Runnable):
     #
     #  Helper functions
     #
-    def list_collections(self):
-        """
-        return a list of all collections (tables) with a type vector
-        in the schema in use
-        """
-
-        query = """
-                SELECT DISTINCT table_name
-                FROM user_tab_columns
-                WHERE data_type = 'VECTOR'
-                ORDER by table_name ASC
-                """
-        list_collections = []
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-
-                rows = cursor.fetchall()
-
-                for row in rows:
-                    list_collections.append(row[0])
-
-        return list_collections
-
-    def list_books_in_collection(self, collection_name: str) -> list:
-        """
-        get the list of books/documents names in the collection
-        taken from metadata
-        expect metadata contains the field source
-
-        modified to return also the numb. of chunks
-        """
-        query = f"""
-                SELECT DISTINCT json_value(METADATA, '$.source') AS books, 
-                count(*) as n_chunks 
-                FROM {collection_name}
-                group by books
-                ORDER by books ASC
-                """
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query)
-
-                rows = cursor.fetchall()
-
-                list_books = []
-                for row in rows:
-                    list_books.append((row[0], row[1]))
-
-        return list_books
-
     def add_documents(self, docs: list, collection_name: str):
         """
         Add the chunks to an existing collection

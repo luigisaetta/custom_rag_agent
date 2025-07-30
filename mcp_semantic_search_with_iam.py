@@ -14,14 +14,13 @@ from fastmcp import FastMCP
 # to verify the JWT token
 from fastmcp.server.auth import BearerAuthProvider
 from fastmcp.server.dependencies import get_http_headers
-import oracledb
 
 from utils import get_console_logger
 from oci_models import get_embedding_model, get_oracle_vs
+from db_utils import get_connection, list_collections
 from config import EMBED_MODEL_TYPE
 from config import DEBUG, IAM_BASE_URL, ENABLE_JWT_TOKEN, ISSUER, AUDIENCE
 from config import TRANSPORT, HOST, PORT
-from config_private import CONNECT_ARGS
 
 logger = get_console_logger()
 
@@ -52,13 +51,6 @@ def log_headers():
     if DEBUG:
         headers = get_http_headers(include_all=True)
         logger.info("Headers: %s", headers)
-
-
-def get_connection():
-    """
-    get a connection to the DB
-    """
-    return oracledb.connect(**CONNECT_ARGS)
 
 
 #
@@ -126,23 +118,7 @@ def get_collections() -> list:
     if ENABLE_JWT_TOKEN:
         log_headers()
 
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute(
-                """SELECT DISTINCT utc.table_name
-                FROM user_tab_columns utc
-                WHERE utc.data_type = 'VECTOR'
-                ORDER BY 1 ASC"""
-            )
-            collections = [row[0] for row in cursor.fetchall()]
-
-            return collections
-    except Exception as e:
-        logger.error("Error in MCP get list collections: %s", e)
-        error = str(e)
-        return {"error": error}
+    return list_collections()
 
 
 if __name__ == "__main__":
