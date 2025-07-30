@@ -17,7 +17,7 @@ from fastmcp.server.dependencies import get_http_headers
 
 from utils import get_console_logger
 from oci_models import get_embedding_model, get_oracle_vs
-from db_utils import get_connection, list_collections
+from db_utils import get_connection, list_collections, list_books_in_collection
 from config import EMBED_MODEL_TYPE
 from config import DEBUG, IAM_BASE_URL, ENABLE_JWT_TOKEN, ISSUER, AUDIENCE
 from config import TRANSPORT, HOST, PORT
@@ -119,6 +119,31 @@ def get_collections() -> list:
         log_headers()
 
     return list_collections()
+
+
+@mcp.tool
+def get_books_in_collection(
+    collection_name: Annotated[
+        str, Field(description="The name of the collection (DB table) to search in.")
+    ] = "BOOKS",
+) -> list:
+    """
+    Get the list of books in a specific collection.
+    Args:
+        collection_name (str): The name of the collection (DB table) to search in.
+    Returns:
+        list: A list of book titles in the specified collection.
+    """
+    # check that a valid JWT is provided
+    if ENABLE_JWT_TOKEN:
+        log_headers()
+
+    try:
+        books = list_books_in_collection(collection_name)
+        return books
+    except Exception as e:
+        logger.error("Error getting books in collection: %s", e)
+        return []
 
 
 if __name__ == "__main__":

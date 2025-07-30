@@ -3,19 +3,16 @@ Test Semantic Search...
 """
 
 import asyncio
-import json
 from fastmcp import Client
 from oci_jwt_client import OCIJWTClient
-from utils import get_console_logger
+from utils import get_console_logger, print_mcp_available_tools
 from config import IAM_BASE_URL, ENABLE_JWT_TOKEN, PORT
+from config_private import SECRET_OCID
 
 logger = get_console_logger()
 
 # this is the endpoint of the MCP server
 ENDPOINT = f"http://localhost:{PORT}/mcp/"
-
-# the ocid of the sclient_secret, stored in the OCI vault
-SECRET_OCID = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
 
 
 # The MCP Client uses StreamableHttpTransport for HTTP URLs
@@ -54,16 +51,7 @@ async def main():
         # get the list of available tools
         tools = await client.list_tools()
 
-        print("")
-        print("---MCP Available tools:")
-        print("")
-        for tool in tools:
-            print(f"Tool: {tool.name} - {tool.description}")
-            # print the input schema for the tool
-            print("Input Schema:")
-            pretty_schema = json.dumps(tool.inputSchema, indent=4, sort_keys=True)
-            print(pretty_schema)
-            print("")
+        print_mcp_available_tools(tools)
 
         print("")
         print("Calling get_collection tool...")

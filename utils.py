@@ -128,3 +128,19 @@ def docs_serializable(docs: List[Document]) -> dict:
         for doc in docs
     ]
     return _docs_serializable
+
+
+def print_mcp_available_tools(tools):
+    """
+    Print the available tools in a readable format.
+
+    Args:
+        tools (list): List of tools to print.
+    """
+    print("\n--- MCP Available tools:")
+    for tool in tools:
+        print(f"Tool: {tool.name} - {tool.description}")
+        print("Input Schema:")
+        pretty_schema = json.dumps(tool.inputSchema, indent=4, sort_keys=True)
+        print(pretty_schema)
+        print("")

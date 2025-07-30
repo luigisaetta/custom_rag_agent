@@ -3,9 +3,9 @@ Test Semantic Search...
 """
 
 import asyncio
-import json
 from fastmcp import Client
 from jwt_utils import create_jwt_token
+from utils import print_mcp_available_tools
 import config
 
 ENDPOINT = f"http://localhost:{config.PORT}/mcp/"
@@ -29,16 +29,7 @@ async def main():
         # get the list of available tools
         tools = await client.list_tools()
 
-        print("")
-        print("---Available tools:")
-        print("")
-        for tool in tools:
-            print(f"Tool: {tool.name} - {tool.description}")
-            # print the input schema for the tool
-            print("Input Schema:")
-            pretty_schema = json.dumps(tool.inputSchema, indent=4, sort_keys=True)
-            print(pretty_schema)
-            print("")
+        print_mcp_available_tools(tools)
 
         print("")
         print("Calling get_collection tool...")

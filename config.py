@@ -24,7 +24,7 @@ Warnings:
     This module is in development, may change in future versions.
 """
 
-DEBUG = True
+DEBUG = False
 
 # type of auth
 AUTH = "API_KEY"

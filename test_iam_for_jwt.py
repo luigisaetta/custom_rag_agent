@@ -10,6 +10,7 @@ import jwt
 from jwt import PyJWKClient
 from oci_jwt_client import OCIJWTClient
 from utils import get_console_logger
+from config_private import SECRET_OCID
 
 logger = get_console_logger()
 
@@ -93,8 +94,6 @@ BASE_URL = "https://idcs-930d7b2ea2cb46049963ecba3049f509.identity.oraclecloud.c
 SCOPE = "urn:opc:idm:__myscopes__"
 # these are used in verification
 # these is depending from the tenant
-# the ocid of the secret in the vault
-SECRET_OCID = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
 
 AUDIENCE = "urn:opc:lbaas:logicalguid=idcs-930d7b2ea2cb46049963ecba3049f509"
 ISSUER = "https://identity.oraclecloud.com/"

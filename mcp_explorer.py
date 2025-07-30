@@ -1,5 +1,5 @@
 """
-Explore an MCP serer and get list and description of tools.
+Explore an MCP server and get list and description of tools.
 
 The server must be accessible through HTTP streaming.
 """
@@ -11,9 +11,8 @@ from fastmcp import Client
 from oci_jwt_client import OCIJWTClient
 from utils import get_console_logger
 from config import DEBUG, ENABLE_JWT_TOKEN, IAM_BASE_URL
+from config_private import SECRET_OCID
 
-# the ocid of the sclient_secret, stored in the OCI vault
-SECRET_OCID = "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaa2xxap7yalre4qru4asevgtxlmn7hwh27awnzmdcrnmsfqu7cia7a"
 # the scope for the JWT token
 SCOPE = "urn:opc:idm:__myscopes__"
 
@@ -78,7 +77,7 @@ if st.button("🔍 Load tools..."):
 
 # Visualize
 if st.session_state.error:
-    st.error(f"❌ Error: {st.session_state.error}")
+    st.error(f"❌ Error: {st.session_state.error}. Is the URL correct?")
 elif st.session_state.tools:
     st.success(f"✅ {len(st.session_state.tools)} tools found.")
     cols = st.columns(3)
