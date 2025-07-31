@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# Source conda to make the `conda` command available
-source /Users/lsaetta/miniforge3/etc/profile.d/conda.sh
+# script to start the MCP server in stdio, to integrate locally with Claude
+# modify the path to align to your envuronment
 
-# Activate the desired environment
+# Source conda to make the `conda` command available
+source $HOME/miniforge3/etc/profile.d/conda.sh
+
+# Activate the desired conda environment
 conda activate custom_rag_agent
 
 # Run the Python script

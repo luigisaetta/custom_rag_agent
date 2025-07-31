@@ -32,6 +32,10 @@ mcp = FastMCP("Demo Semantic Search as MCP server")
 # Helper functions
 #
 
+
+#
+# MCP tools definition
+#
 @mcp.tool
 def semantic_search(
     query: Annotated[
@@ -65,6 +69,8 @@ def semantic_search(
             )
             relevant_docs = v_store.similarity_search(query=query, k=top_k)
 
+            # (L.S.) we could additionally plug a reranker here
+            
             if DEBUG:
                 logger.info("Result from the similarity search:")
                 logger.info(relevant_docs)
