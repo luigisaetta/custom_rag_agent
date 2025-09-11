@@ -4,7 +4,7 @@
 This repository contains the code for the development of a **custom RAG Agent**, based on **OCI Generative AI**, **Oracle 23AI** Vector Store and **LangGraph**
 
 **Author**: L. Saetta
-**Last updated**: 09/09/2025
+**Last updated**: 11/09/2025
 
 ## Design and implementation
 * The agent is implemented using **LangGraph**
@@ -28,9 +28,10 @@ For example, links to the documentation' chunks are displayed before the final a
 Security can be handled in two ways:
 * custom: generate the **JWT token** using the library **PyJWT**
 * **OCI**: generate the JWT token using **OCI IAM**
+* added a [demo LLM with MCP](./ui_mcp_agent.py) showing how to integrate a generic MCP server in a Chabot using **Cohere** model.
 
 ## Status
-It is **WIP**.
+It is always and proudly **WIP**.
 
 ## References
 * [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)

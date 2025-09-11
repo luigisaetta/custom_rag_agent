@@ -1,7 +1,9 @@
 """
-Test LLM and MCP3
+Test LLM and MCP
 Based on fastmcp library.
 This one provide also support for security in MCP calls, using JWT token.
+
+This is the backend for the Streamlit MCP UI.
 """
 
 import json
@@ -27,6 +29,10 @@ TIMEOUT = 60
 # the scope for the JWT token
 SCOPE = "urn:opc:idm:__myscopes__"
 
+SYSTEM_PROMPT = """You are an AI assistant equipped with an MCP server and several tools.
+If the collection name is not provided in the user's prompt, 
+use the collection BOOKS to get the additional information you need to answer.
+"""
 
 def default_jwt_supplier() -> str:
     """
@@ -36,10 +42,6 @@ def default_jwt_supplier() -> str:
     token, _, _ = OCIJWTClient(IAM_BASE_URL, SCOPE, SECRET_OCID).get_token()
     return token
 
-
-SYSTEM_PROMPT = """You are an AI assistant equipped with an MCP server and several tools.
-Use the collection BOOKS to get the additional information you need.
-"""
 
 
 class AgentWithMCP:

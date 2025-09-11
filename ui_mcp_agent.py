@@ -6,7 +6,7 @@ import asyncio
 import streamlit as st
 from mcp_servers_config import MCP_SERVERS_CONFIG
 
-# this one contains the test code only for console
+# this one contains the backend and the test code only for console
 from llm_with_mcp import AgentWithMCP, default_jwt_supplier
 
 # ---------- Page setup ----------
@@ -36,13 +36,14 @@ if "chat" not in st.session_state:
 
 # ---------- Connect / reload ----------
 if connect:
-    with st.spinner("Connecting to MCP and loading tools…"):
+    with st.spinner("Connecting to MCP server and loading tools…"):
         try:
             # Create an agent (async factory) and cache it in session_state
             st.session_state.agent = asyncio.run(
                 AgentWithMCP.create(
                     mcp_url=mcp_url,
-                    jwt_supplier=default_jwt_supplier,  # returns a fresh raw JWT
+                    # returns a fresh raw JWT
+                    jwt_supplier=default_jwt_supplier,  
                     timeout=timeout,
                     model_id=model_id,
                 )
@@ -58,7 +59,7 @@ for msg in st.session_state.chat:
         st.write(msg["content"])
 
 # ---------- Input box ----------
-prompt = st.chat_input("Ask your question…")  # one per page; lives at the bottom
+prompt = st.chat_input("Ask your question…")
 
 if prompt:
     # Show the user message immediately
