@@ -8,7 +8,7 @@ This is the backend for the Streamlit MCP UI.
 
 import json
 import asyncio
-from typing import List, Dict, Any, Callable
+from typing import List, Dict, Any, Callable, Sequence, Optional
 
 from fastmcp import Client as MCPClient
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -17,31 +17,38 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from oci_jwt_client import OCIJWTClient
 from oci_models import get_llm
 from utils import get_console_logger
-from config import IAM_BASE_URL
+from config import IAM_BASE_URL, ENABLE_JWT_TOKEN
 from config_private import SECRET_OCID
 from mcp_servers_config import MCP_SERVERS_CONFIG
 
 logger = get_console_logger()
 
 # ---- Config ----
-MCP_URL = MCP_SERVERS_CONFIG["oci-semantic-search"]["url"]
+MAX_HISTORY = 10
+MCP_URL = MCP_SERVERS_CONFIG["default"]["url"]
 TIMEOUT = 60
 # the scope for the JWT token
 SCOPE = "urn:opc:idm:__myscopes__"
 
+# eventually you can taylor the SYSTEM prompt here
 SYSTEM_PROMPT = """You are an AI assistant equipped with an MCP server and several tools.
+Provide all the needed information with a detailed query when you use a tool.
 If the collection name is not provided in the user's prompt, 
 use the collection BOOKS to get the additional information you need to answer.
 """
+
 
 def default_jwt_supplier() -> str:
     """
     Get a valid JWT token to make the call to MCP server
     """
-    # Always return a FRESH token; do not include "Bearer " (FastMCP adds it)
-    token, _, _ = OCIJWTClient(IAM_BASE_URL, SCOPE, SECRET_OCID).get_token()
+    if ENABLE_JWT_TOKEN:
+        # Always return a FRESH token; do not include "Bearer " (FastMCP adds it)
+        token, _, _ = OCIJWTClient(IAM_BASE_URL, SCOPE, SECRET_OCID).get_token()
+    else:
+        # JWT security disabled
+        token = None
     return token
-
 
 
 class AgentWithMCP:
@@ -50,6 +57,11 @@ class AgentWithMCP:
     - Discovers tools from an MCP server (JWT-protected)
     - Binds tool JSON Schemas to the LLM
     - Executes tool calls emitted by the LLM and loops until completion
+
+    This is a rather simple agent, it does only tool calling,
+    but tools are provided by the MCP server.
+    The code introspects the MCP server and decide which tool to call
+    and what parameters to provide.
     """
 
     def __init__(
@@ -91,6 +103,7 @@ class AgentWithMCP:
         """
         jwt = self.jwt_supplier()
         logger.info("Listing tools from %s ...", self.mcp_url)
+
         # FastMCP requires async context + await for client ops. :contentReference[oaicite:1]{index=1}
         async with MCPClient(self.mcp_url, auth=jwt, timeout=self.timeout) as c:
             # returns Tool objects
@@ -115,10 +128,11 @@ class AgentWithMCP:
     ):
         """
         Async factory: fetch tools, bind them to the LLM, return a ready-to-use agent.
-        Avoids doing awaits in __init__.
+        Important: Avoids doing awaits in __init__.
         """
         # should return a LangChain Chat model supporting .bind_tools(...)
         llm = get_llm(model_id=model_id)
+        # after, we call init()
         self = cls(mcp_url, jwt_supplier, timeout, llm)
 
         tools = await self._list_tools()
@@ -130,15 +144,67 @@ class AgentWithMCP:
         self.model_with_tools = self.llm.bind_tools(schemas)
         return self
 
+    def _build_messages(
+        self,
+        history: Sequence[Dict[str, Any]],
+        system_prompt: str,
+        current_user_prompt: str,
+        *,
+        max_history: Optional[
+            int
+        ] = MAX_HISTORY,  # keep only the last N items; None = keep all
+        exclude_last: bool = True,  # drop the very last history entry before building
+    ) -> List[Any]:
+        """
+        Create: [SystemMessage(system_prompt), <trimmed history except last>,
+        HumanMessage(current_user_prompt)]
+        History items are dicts like {"role": "user"|"assistant", "content": "..."}
+        in chronological order.
+        """
+        # 1) Trim to the last `max_history` entries (if set)
+        if max_history is not None and max_history > 0:
+            working = list(history[-max_history:])
+        else:
+            working = list(history)
+
+        # 2) Optionally remove the final entry from trimmed history
+        if exclude_last and working:
+            working = working[:-1]
+
+        # 3) Build LangChain messages
+        msgs: List[Any] = [SystemMessage(content=system_prompt)]
+        for m in working:
+            role = (m.get("role") or "").lower()
+            content: Optional[str] = m.get("content")
+            if not content:
+                continue
+            if role == "user":
+                msgs.append(HumanMessage(content=content))
+            elif role == "assistant":
+                msgs.append(AIMessage(content=content))
+            # ignore other/unknown roles (e.g., 'system', 'tool') in this simple variant
+
+        # 4) Add the current user prompt
+        msgs.append(HumanMessage(content=current_user_prompt))
+        return msgs
+
+    #
     # ---------- main loop ----------
-    async def answer(self, question: str) -> str:
+    #
+    async def answer(self, question: str, history: list = None) -> str:
         """
         Run the LLM+MCP loop until the model stops calling tools.
         """
-        messages: List[Any] = [
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=question),
-        ]
+        messages = self._build_messages(
+            history=history,
+            system_prompt=SYSTEM_PROMPT,
+            current_user_prompt=question,
+        )
+
+        # List[Any] = [
+        #    SystemMessage(content=SYSTEM_PROMPT),
+        #    HumanMessage(content=question),
+        # ]
 
         while True:
             ai: AIMessage = await self.model_with_tools.ainvoke(messages)
@@ -155,6 +221,7 @@ class AgentWithMCP:
                 name = tc["name"]
                 args = tc.get("args") or {}
                 try:
+                    # here we call the tool
                     result = await self._call_tool(name, args)
                     payload = (
                         getattr(result, "data", None)
@@ -180,7 +247,8 @@ class AgentWithMCP:
 
 
 # ---- Example CLI usage ----
+# this code is good for CLI, not Streamlit. See ui_mcp_agent.py
 if __name__ == "__main__":
-    q = "Tell me about Luigi Saetta. I need his e-mail address also."
+    QUESTION = "Tell me about Luigi Saetta. I need his e-mail address also."
     agent = asyncio.run(AgentWithMCP.create())
-    print(asyncio.run(agent.answer(q)))
+    print(asyncio.run(agent.answer(QUESTION)))

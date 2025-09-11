@@ -112,7 +112,7 @@ TRANSPORT = "streamable-http"
 HOST = "0.0.0.0"
 PORT = 9000
 # with this we can toggle JWT token auth
-ENABLE_JWT_TOKEN = True
+ENABLE_JWT_TOKEN = False
 # for JWT token with OCI
 IAM_BASE_URL = "https://idcs-930d7b2ea2cb46049963ecba3049f509.identity.oraclecloud.com"
 # these are used during the verification of the token

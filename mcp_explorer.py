@@ -23,7 +23,7 @@ st.set_page_config(page_title="MCP Explorer", layout="wide")
 st.title("🚀 MCP Tool Explorer")
 
 # Config
-DEFAULT_URL = MCP_SERVERS_CONFIG["oci-semantic-search"]["url"]
+DEFAULT_URL = MCP_SERVERS_CONFIG["default"]["url"]
 server_url = st.text_input("URL MCP:", DEFAULT_URL)
 TIMEOUT = 30
 

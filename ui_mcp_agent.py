@@ -16,9 +16,7 @@ st.title("🛠️ LLM powered by MCP")
 # ---------- Sidebar: connection settings ----------
 with st.sidebar:
     st.header("Connection")
-    mcp_url = st.text_input(
-        "MCP URL", value=MCP_SERVERS_CONFIG["oci-semantic-search"]["url"]
-    )
+    mcp_url = st.text_input("MCP URL", value=MCP_SERVERS_CONFIG["default"]["url"])
     model_id = st.selectbox("Model", ["cohere.command-a-03-2025"], index=0)
     timeout = st.number_input(
         "Timeout (s)", min_value=5, max_value=300, value=60, step=5
@@ -43,7 +41,7 @@ if connect:
                 AgentWithMCP.create(
                     mcp_url=mcp_url,
                     # returns a fresh raw JWT
-                    jwt_supplier=default_jwt_supplier,  
+                    jwt_supplier=default_jwt_supplier,
                     timeout=timeout,
                     model_id=model_id,
                 )
@@ -75,13 +73,16 @@ if prompt:
         with st.chat_message("assistant"):
             with st.spinner("Thinking with MCP tools…"):
                 try:
-                    answer = asyncio.run(st.session_state.agent.answer(prompt))
+                    answer = asyncio.run(
+                        # we pass also the history (chat)
+                        st.session_state.agent.answer(prompt, st.session_state.chat)
+                    )
                 except Exception as e:
                     answer = f"Error: {e}"
                 st.write(answer)
                 st.session_state.chat.append({"role": "assistant", "content": answer})
 
-# ---------- Optional: small debug panel ----------
+# ---------- Optional: the small debug panel in the bottom ----------
 with st.expander("🔎 Debug / State"):
     st.json(
         {
