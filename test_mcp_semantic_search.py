@@ -31,6 +31,7 @@ async def main():
 
         query = "What is Oracle AI Vector Search?"
 
+        # here we have a static call, not decided by LLM
         results = await client.call_tool(
             "semantic_search",
             {

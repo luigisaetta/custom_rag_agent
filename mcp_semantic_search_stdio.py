@@ -67,10 +67,13 @@ def semantic_search(
                 collection_name=collection_name,
                 embed_model=embed_model,
             )
+
+            logger.info("Doing search...")
+
             relevant_docs = v_store.similarity_search(query=query, k=top_k)
 
             # (L.S.) we could additionally plug a reranker here
-            
+
             if DEBUG:
                 logger.info("Result from the similarity search:")
                 logger.info(relevant_docs)
