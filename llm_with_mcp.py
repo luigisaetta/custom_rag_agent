@@ -102,9 +102,10 @@ class AgentWithMCP:
         Fetch tools from the MCP server using FastMCP. Must be async.
         """
         jwt = self.jwt_supplier()
+
         logger.info("Listing tools from %s ...", self.mcp_url)
 
-        # FastMCP requires async context + await for client ops. :contentReference[oaicite:1]{index=1}
+        # FastMCP requires async context + await for client ops.
         async with MCPClient(self.mcp_url, auth=jwt, timeout=self.timeout) as c:
             # returns Tool objects
             return await c.list_tools()
