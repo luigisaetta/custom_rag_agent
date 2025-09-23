@@ -109,6 +109,7 @@ CHUNK_OVERLAP = 100
 
 # for MCP server
 TRANSPORT = "streamable-http"
+# TRANSPORT = "stdio"
 HOST = "0.0.0.0"
 PORT = 9000
 # with this we can toggle JWT token auth

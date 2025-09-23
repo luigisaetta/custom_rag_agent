@@ -1,13 +1,15 @@
 """
-Minimal MCP server
+Minimal-but-solid MCP server with JWT hardening and sane defaults.
 
-This should be the starting point for any MCP server built with Fastmcp
+- Safe defaults for transports
 """
 
 from fastmcp import FastMCP
 
 # to verify the JWT token
 # if you don't need to add security, you can remove this
+# in newer version of FastMCP should be replaced with
+# from fastmcp.server.auth.providers.jwt import JWTVerifier
 from fastmcp.server.auth import BearerAuthProvider
 
 from config import (
@@ -22,23 +24,27 @@ from config import (
     PORT,
 )
 
-AUTH = None
 
 #
 # if you don't need to add security, you can remove this part and set
-# AUTH = None, or simply set ENABLE_JWT_TOKEN = False
+# AUTH = None, simply set ENABLE_JWT_TOKEN = False
 #
+AUTH = None
+
 if ENABLE_JWT_TOKEN:
     # check that a valid JWT token is provided
     AUTH = BearerAuthProvider(
         # this is the url to get the public key from IAM
-        # the PK is usedd to check the JWT
+        # the PK is used to check the JWT
         jwks_uri=f"{IAM_BASE_URL}/admin/v1/SigningCert/jwk",
         issuer=ISSUER,
         audience=AUDIENCE,
     )
 
-mcp = FastMCP("MCP server with few lines of code", auth=AUTH)
+#
+# define the MCP server
+#
+mcp = FastMCP("MCP server with few lines of code, but secure", auth=AUTH)
 
 
 #
@@ -49,6 +55,12 @@ mcp = FastMCP("MCP server with few lines of code", auth=AUTH)
 def say_the_truth(user: str) -> str:
     """
     This tool, given the name of the user return one of the secret truths.
+
+    Args:
+        user: The caller's display name or identifier.
+
+    Returns:
+        A short truth string. 
     """
     # here you'll put the code that reads and return the info requested
     # mark each tool with the annotation
@@ -59,12 +71,18 @@ def say_the_truth(user: str) -> str:
 # Run the MCP server
 #
 if __name__ == "__main__":
-    # if you want to use stdio, you don't need host, port
-    # config here is for streamable-http.
-    # don't use sse! it is deprecated!
-    mcp.run(
-        transport=TRANSPORT,
-        # Bind to all interfaces
-        host=HOST,
-        port=PORT,
-    )
+    # Validate transport
+    if TRANSPORT not in {"stdio", "streamable-http"}:
+        # don't use sse! it is deprecated!
+        raise RuntimeError(f"Unsupported TRANSPORT: {TRANSPORT}")
+
+    if TRANSPORT == "stdio":
+        # stdio doesn’t support host/port args
+        mcp.run(transport=TRANSPORT)
+    else:
+        # For http/streamable-http transport, host/port are valid
+        mcp.run(
+            transport=TRANSPORT,
+            host=HOST,
+            port=PORT,
+        )
