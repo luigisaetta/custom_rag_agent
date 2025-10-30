@@ -58,6 +58,8 @@ class QueryRewriter(Runnable):
 
         Reformulate the question in a standalone question, using the chat_history
         """
+        model_id = config["configurable"]["model_id"]
+
         user_request = input["user_request"]
         error = None
 
@@ -66,7 +68,7 @@ class QueryRewriter(Runnable):
                 logger.info("Reformulating the question...")
 
             try:
-                llm = get_llm(temperature=0)
+                llm = get_llm(model_id=model_id, temperature=0)
 
                 _prompt_template = PromptTemplate(
                     input_variables=["user_request", "chat_history"],

@@ -60,7 +60,7 @@ def say_the_truth(user: str) -> str:
         user: The caller's display name or identifier.
 
     Returns:
-        A short truth string. 
+        A short truth string.
     """
     # here you'll put the code that reads and return the info requested
     # mark each tool with the annotation

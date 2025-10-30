@@ -96,7 +96,7 @@ def get_books_in_collection(
 
 
 @mcp.tool
-def semantic_search(
+def search(
     query: Annotated[
         str, Field(description="The search query to find relevant documents.")
     ],

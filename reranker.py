@@ -39,7 +39,7 @@ from prompts import (
 )
 from oci_models import get_llm
 from utils import get_console_logger, extract_json_from_text
-from config import DEBUG, AGENT_NAME, TOP_K
+from config import DEBUG, AGENT_NAME, TOP_K, RERANKER_MODEL_ID
 
 logger = get_console_logger()
 
@@ -81,7 +81,12 @@ class Reranker(Runnable):
 
         messages = [HumanMessage(content=_prompt)]
 
-        reranker_output = llm.invoke(messages).content
+        llm_response = llm.invoke(messages)
+
+        if DEBUG:
+            logger.info("Reranker LLM response: %s", llm_response)
+
+        reranker_output = llm_response.content
 
         # Extract ranking order
         json_dict = extract_json_from_text(reranker_output)
@@ -106,21 +111,21 @@ class Reranker(Runnable):
 
         input: The agent state.
         """
+        if DEBUG:
+            logger.info("Reranker input state: %s", input)
+
         enable_reranker = config["configurable"]["enable_reranker"]
 
         user_request = input.get("standalone_question", "")
         retriever_docs = input.get("retriever_docs", [])
         error = None
 
-        if DEBUG:
-            logger.info("Reranker input state: %s", input)
-
         try:
             if retriever_docs:
                 # there is something to rerank!
                 if enable_reranker:
                     # do reranking
-                    llm = get_llm(temperature=0.0)
+                    llm = get_llm(model_id=RERANKER_MODEL_ID, temperature=0.0)
 
                     reranked_docs = self.get_reranked_docs(
                         llm, user_request, retriever_docs

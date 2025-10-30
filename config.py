@@ -50,6 +50,7 @@ LLM_MODEL_ID = "meta.llama-3.3-70b-instruct"
 TEMPERATURE = 0.1
 MAX_TOKENS = 4000
 
+
 # OCI general
 # REGION = "eu-frankfurt-1"
 REGION = "us-chicago-1"
@@ -63,7 +64,6 @@ LANGUAGE_LIST = ["same as the question", "en", "fr", "it", "es"]
 if REGION == "us-chicago-1":
     # for now only available in chicago region
     MODEL_LIST = [
-        "xai.grok-3",
         "xai.grok-4",
         "openai.gpt-4.1",
         "openai.gpt-4o",
@@ -71,6 +71,9 @@ if REGION == "us-chicago-1":
         "meta.llama-3.3-70b-instruct",
         "cohere.command-a-03-2025",
     ]
+
+    # for reranker
+    RERANKER_MODEL_ID = "xai.grok-4-fast-non-reasoning"
 else:
     MODEL_LIST = [
         "meta.llama-3.3-70b-instruct",
@@ -80,12 +83,14 @@ else:
         "openai.gpt-5",
     ]
 
+    RERANKER_MODEL_ID = "cohere.command-a-03-2025"
+
 ENABLE_USER_FEEDBACK = True
 
 # semantic search
 TOP_K = 6
 # COLLECTION_LIST = ["BOOKS", "CNAF"]
-COLLECTION_LIST = ["BOOKS", "NVIDIA_BOOKS2"]
+COLLECTION_LIST = ["BOOKS", "BANKS"]
 DEFAULT_COLLECTION = "BOOKS"
 
 

@@ -49,7 +49,7 @@ def validate_token():
 
 
 @mcp.tool
-def semantic_search(
+def search(
     query: Annotated[
         str, Field(description="The search query to find relevant documents.")
     ],
