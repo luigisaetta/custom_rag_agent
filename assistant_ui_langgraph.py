@@ -220,8 +220,9 @@ if question := st.chat_input("Hello, how can I help you?"):
                         }
                     }
 
-                    if config.DEBUG:
-                        logger.info("Agent config: %s", agent_config)
+                    logger.info("")
+                    logger.info("Agent config: %s", agent_config)
+                    logger.info("")
 
                     # loop to manage streaming
                     for event in st.session_state.workflow.stream(

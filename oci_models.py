@@ -34,6 +34,7 @@ from langchain_community.vectorstores.oraclevs import OracleVS
 from custom_rest_embeddings import CustomRESTEmbeddings
 from utils import get_console_logger
 from config import (
+    DEBUG,
     AUTH,
     SERVICE_ENDPOINT,
     COMPARTMENT_ID,
@@ -128,7 +129,8 @@ def get_embedding_model(model_type="OCI"):
             api_url=NVIDIA_EMBED_MODEL_URL, model=EMBED_MODEL_ID
         )
 
-    logger.info("Embedding model is: %s", EMBED_MODEL_ID)
+    if DEBUG:
+        logger.info("Embedding model is: %s", EMBED_MODEL_ID)
 
     return embed_model
 
