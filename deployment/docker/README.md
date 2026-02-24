@@ -1,5 +1,7 @@
 # Docker deployment (UI + Citation Image Server + Nginx)
 
+For Ubuntu-specific setup, see [README-ubuntu.md](./README-ubuntu.md).
+
 This setup runs:
 1. Streamlit UI (`assistant_ui_langgraph.py`)
 2. A Python static web server for citation images
@@ -46,6 +48,50 @@ ports:
   - "8501:80"
 volumes:
   - ./nginx/streamlit.conf:/etc/nginx/conf.d/default.conf:ro
+  - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+```
+
+## Basic Auth setup (Nginx)
+
+Create the password file on the host at:
+
+```text
+deployment/docker/nginx/.htpasswd
+```
+
+Cross-platform (works on macOS and Linux, requires Docker):
+
+```bash
+mkdir -p deployment/docker/nginx
+docker run --rm --entrypoint htpasswd httpd:2.4-alpine -Bbn user1 'password1' > deployment/docker/nginx/.htpasswd
+docker run --rm --entrypoint htpasswd httpd:2.4-alpine -Bbn user2 'password2' >> deployment/docker/nginx/.htpasswd
+```
+
+Native commands (optional):
+
+macOS (Homebrew):
+
+```bash
+brew install httpd
+mkdir -p deployment/docker/nginx
+htpasswd -Bbc deployment/docker/nginx/.htpasswd user1
+htpasswd -Bb deployment/docker/nginx/.htpasswd user2
+```
+
+Linux (Debian/Ubuntu):
+
+```bash
+sudo apt-get update && sudo apt-get install -y apache2-utils
+mkdir -p deployment/docker/nginx
+htpasswd -Bbc deployment/docker/nginx/.htpasswd user1
+htpasswd -Bb deployment/docker/nginx/.htpasswd user2
+```
+
+After creating/updating users:
+
+```bash
+docker compose -f deployment/docker/docker-compose.yml up -d
+docker compose -f deployment/docker/docker-compose.yml restart nginx_streamlit
 ```
 
 Important checks:
@@ -55,6 +101,7 @@ Important checks:
 3. `${HOME}/.oci/config` exists and the selected profile is valid.
 4. In OCI config, `key_file` must resolve inside the mounted `/root/.oci/...` path in container.
 5. `/Users/lsaetta/Progetti/work-iren/pages` contains citation subfolders and `pageNNNN.png` files.
+6. `deployment/docker/nginx/.htpasswd` exists before starting Nginx.
 
 ## Build
 
