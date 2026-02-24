@@ -13,3 +13,7 @@ deployment/docker/nginx/.htpasswd
 # macOS metadata
 .DS_Store
 **/.DS_Store
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
