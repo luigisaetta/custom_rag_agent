@@ -1,4 +1,4 @@
-# Docker deployment (UI + citation image server)
+# Docker deployment (UI + Citation Image Server)
 
 This setup runs:
 1. Streamlit UI (`assistant_ui_langgraph.py`)
@@ -6,14 +6,14 @@ This setup runs:
 
 ## Deployment settings
 
-`deployment/docker/docker-compose.yml` expects:
+`deployment/docker/docker-compose.yml` configures:
 
 1. `config_private.py` mounted to `/app/config_private.py`
 2. Oracle wallet mounted to `/app/wallet_atp`
 3. OCI config mounted to `/root/.oci`
-4. Citation images root mounted from `/Users/lsaetta/Progetti/work-iren/pages` to `/data/citations`
+4. Citation image root mounted from `/Users/lsaetta/Progetti/work-iren/pages` to `/data/citations`
 
-Current compose settings:
+Current UI service settings:
 
 ```yaml
 environment:
@@ -27,7 +27,7 @@ volumes:
   - ${HOME}/.oci:/root/.oci:ro
 ```
 
-Citation image server compose settings:
+Citation image server settings:
 
 ```yaml
 ports:
@@ -42,17 +42,17 @@ Important checks:
 2. Wallet host path exists and contains `tnsnames.ora`, `sqlnet.ora`, wallet files.
 3. `${HOME}/.oci/config` exists and the selected profile is valid.
 4. In OCI config, `key_file` must resolve inside the mounted `/root/.oci/...` path in container.
-5. `/Users/lsaetta/Progetti/work-iren/pages` contains citation subfolders and `pageNNNN.png` images.
+5. `/Users/lsaetta/Progetti/work-iren/pages` contains citation subfolders and `pageNNNN.png` files.
 
 ## Build
 
-Run from project root:
+Run from the project root:
 
 ```bash
 docker build -f deployment/docker/Dockerfile -t custom-rag-agent-ui:latest .
 ```
 
-## Start (recommended: compose)
+## Start (Recommended: Compose)
 
 ```bash
 docker compose -f deployment/docker/docker-compose.yml up -d --build
@@ -76,7 +76,7 @@ docker compose -f deployment/docker/docker-compose.yml down
 docker compose -f deployment/docker/docker-compose.yml logs -f
 ```
 
-## Alternative: docker run
+## Alternative: docker run (UI only)
 
 ```bash
 docker run -d \

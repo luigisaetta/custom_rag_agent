@@ -1,23 +1,25 @@
-# Custom RAG agent
-This repository contains the code for the development of a **custom RAG Agent**, based on **OCI Generative AI**, **Oracle 23AI** Vector Store and **LangGraph**
+# Custom RAG Agent
+This repository contains a customizable **RAG agent** built with **LangGraph**, **OCI Generative AI**, and **Oracle 23AI Vector Search**.
 
-**Author**: L. Saetta
-
-**Reviewed**: 24.02.2026
+**Author**: L. Saetta  
+**Reviewed**: 2026-02-24
 
 ![UI](images/ui_image.png)
 
-## When to use this assett
-Thios assett shows you how to build a Custom RAG Agent based on LangGraph and OCI Generatice AI.
-It is fully customizable.
+## When to use this asset
+Use this project as a reference implementation when you need:
+- A modular, production-oriented RAG workflow
+- OCI-hosted LLM and embedding model integration
+- Oracle 23AI as the vector store
+- A Streamlit UI for interactive testing
 
 ## Design and implementation
-* The agent is implemented using **LangGraph**
-* Vector Search is implemented, using Langchain, on top of Oracle 23AI
-* A **reranker** can be used to refine the search
+- The orchestration layer is implemented with **LangGraph**
+- Vector search is implemented with **LangChain** on Oracle 23AI
+- A **reranker** step can refine retrieved chunks before answer generation
 
 ## Project structure
-```
+```text
 .
 ├── agent/                  # LangGraph agent workflow + nodes
 │   ├── rag_agent.py
@@ -28,7 +30,7 @@ It is fully customizable.
 │   ├── answer_generator.py
 │   ├── content_moderation.py
 │   └── prompts.py
-├── core/                   # shared models/utilities/data helpers
+├── core/                   # Shared models/utilities/data helpers
 │   ├── oci_models.py
 │   ├── custom_rest_embeddings.py
 │   ├── citation_utils.py
@@ -42,36 +44,93 @@ It is fully customizable.
 └── tests/
 ```
 
-### Design decisions:
-* For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
-* **Reranker** is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
-* The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
-* UI implemented using **Streamlit**
+## Design decisions
+- Each graph node is implemented as a dedicated Python class (Runnable pattern)
+- Reranking is currently LLM-based; alternative rerankers can be plugged in
+- Observability is integrated with **OCI APM** (via `py-zipkin`)
+- The UI is implemented with **Streamlit**
 
-### Streaming:
-* Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
-For example, links to the documentation' chunks are displayed before the final answer is ready.
-* Streaming of the final answer.
+## Streaming behavior
+- The UI receives and renders intermediate agent events (vector search, reranking, etc.)
+- Reference links can appear before the final answer is completed
+- Final answer tokens are streamed
 
 ## Status
-It is always and proudly **WIP**.
+This project is actively evolving and is considered **WIP**.
 
 ## References
-For more information:
-* [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)
+- [Integration with OCI APM](https://luigi-saetta.medium.com/enhancing-observability-in-rag-solutions-with-oracle-cloud-6f93b2675f40)
 
-## Advantages of the Agentic approach
-One of the primary advantages of the agentic approach is its **modularity**. 
-Customer requirements often surpass the simplicity of typical Retrieval-Augmented Generation (RAG) demonstrations. Implementing a framework like **LangGraph** necessitates organizing code into a modular sequence of steps, facilitating the seamless integration of additional features at appropriate places.​
+## Why an Agentic Approach
+One primary advantage of an agentic architecture is **modularity**.  
+Real-world requirements usually go beyond simple RAG demos. With **LangGraph**, features can be added as isolated steps in the workflow without rewriting the whole pipeline.
 
-For example, to ensure that final responses do not disclose Personally Identifiable Information (PII) present in the knowledge base, one can simply append a node at the end of the graph. This node would process the generated answer, detect any PII, and anonymize it accordingly.
+Example: if answers must redact PII from retrieved content, you can append a dedicated post-processing node that detects and anonymizes sensitive data.
 
 ## Configuration
-* use Python 3.11
-* use the requirements.txt
-* create your config_private.py using the template provided
+### 1) Python environment
+1. Use `Python 3.11`.
+2. Create and activate a virtual environment.
+3. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2) Public configuration (`config.py`)
+`config.py` contains shared runtime settings:
+1. OCI region and endpoint:
+   - `REGION`
+   - `SERVICE_ENDPOINT`
+2. Model settings:
+   - `LLM_MODEL_ID`
+   - `EMBED_MODEL_TYPE`
+   - `EMBED_MODEL_ID`
+   - `RERANKER_MODEL_ID`
+3. Retrieval behavior:
+   - `TOP_K`
+   - `COLLECTION_LIST`
+   - `DEFAULT_COLLECTION`
+4. Citation links:
+   - `CITATION_BASE_URL` (env-overridable, default `http://127.0.0.1:8008/`)
+
+### 3) Private configuration (`config_private.py`)
+Create `config_private.py` from `config_private_template.py`, then set:
+1. `VECTOR_DB_USER`
+2. `VECTOR_DB_PWD`
+3. `VECTOR_WALLET_PWD`
+4. `VECTOR_DSN`
+5. Wallet location (`VECTOR_WALLET_DIR` can be auto-resolved or forced via env var `VECTOR_WALLET_DIR`)
+
+Docker mount path for this file:
+- `/app/config_private.py`
+
+### 4) OCI CLI configuration
+The project expects OCI credentials from your local OCI directory:
+1. Ensure `${HOME}/.oci/config` exists.
+2. Ensure `key_file` paths are valid from inside the mount.
+3. The default profile in compose is `DEFAULT`.
+
+### 5) Citation image server (UI references)
+When running with Docker Compose, a Python static server exposes citation PNG files on port `8008`.
+
+Expected directory structure:
+
+```text
+<citation_root>/<document_name_without_pdf>/page0001.png
+```
+
+Example:
+
+```text
+/Users/lsaetta/Progetti/work-iren/pages/MyDoc/page0007.png
+```
+
+### 6) Docker deployment details
+For complete Docker deployment instructions (services, mounts, ports, health checks), see:
+- [deployment/docker/README.md](./deployment/docker/README.md)
 
 ## License
-The assett is licensed under **MIT** license.
+This project is licensed under the **MIT** License.
 
 See [LICENSE](./LICENSE)
