@@ -1,8 +1,9 @@
-# Docker deployment (UI + Citation Image Server)
+# Docker deployment (UI + Citation Image Server + Nginx)
 
 This setup runs:
 1. Streamlit UI (`assistant_ui_langgraph.py`)
 2. A Python static web server for citation images
+3. Nginx reverse proxy in front of Streamlit
 
 ## Deployment settings
 
@@ -21,6 +22,8 @@ environment:
   - OCI_CONFIG_FILE=/root/.oci/config
   - OCI_CLI_PROFILE=DEFAULT
   - CITATION_BASE_URL=${CITATION_BASE_URL:-http://127.0.0.1:8008/}
+expose:
+  - "8501"
 volumes:
   - ../../config_private.py:/app/config_private.py:ro
   - /Users/lsaetta/Progetti/work-iren/wallet:/app/wallet_atp:ro
@@ -34,6 +37,15 @@ ports:
   - "${CITATION_SERVER_BIND_IP:-0.0.0.0}:${CITATION_SERVER_PORT:-8008}:8008"
 volumes:
   - /Users/lsaetta/Progetti/work-iren/pages:/data/citations:ro
+```
+
+Nginx reverse proxy settings:
+
+```yaml
+ports:
+  - "8501:80"
+volumes:
+  - ./nginx/streamlit.conf:/etc/nginx/conf.d/default.conf:ro
 ```
 
 Important checks:
@@ -58,7 +70,7 @@ docker build -f deployment/docker/Dockerfile -t custom-rag-agent-ui:latest .
 docker compose -f deployment/docker/docker-compose.yml up -d --build
 ```
 
-UI URL:
+UI URL (through Nginx):
 
 ```text
 http://localhost:8501
@@ -76,7 +88,7 @@ docker compose -f deployment/docker/docker-compose.yml down
 docker compose -f deployment/docker/docker-compose.yml logs -f
 ```
 
-## Alternative: docker run (UI only)
+## Alternative: docker run (UI only, no Nginx)
 
 ```bash
 docker run -d \

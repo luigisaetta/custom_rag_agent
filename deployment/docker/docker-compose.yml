@@ -24,8 +24,8 @@ services:
     build:
       context: ../..
       dockerfile: deployment/docker/Dockerfile
-    ports:
-      - "8501:8501"
+    expose:
+      - "8501"
     environment:
       - VECTOR_WALLET_DIR=/app/wallet_atp
       - OCI_CONFIG_FILE=/root/.oci/config
@@ -37,4 +37,15 @@ services:
       - ${HOME}/.oci:/root/.oci:ro
     depends_on:
       - citation_image_server
+    restart: unless-stopped
+
+  nginx_streamlit:
+    image: nginx:1.27-alpine
+    container_name: nginx_streamlit
+    depends_on:
+      - custom-rag-agent-ui
+    ports:
+      - "8501:80"
+    volumes:
+      - ./nginx/streamlit.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
