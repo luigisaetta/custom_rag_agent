@@ -36,6 +36,7 @@ Use this project as a reference implementation when you need:
 │   ├── citation_utils.py
 │   ├── db_utils.py
 │   ├── rag_feedback.py
+│   ├── transport.py
 │   ├── chunk_index_utils.py
 │   ├── bm25_search.py
 │   └── utils.py
