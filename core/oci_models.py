@@ -1,7 +1,7 @@
 """
 File name: oci_models.py
 Author: Luigi Saetta
-Date last modified: 2025-06-30
+Last modified: 24-02-2026
 Python Version: 3.11
 
 Description:
@@ -53,7 +53,6 @@ ALLOWED_EMBED_MODELS_TYPE = {"OCI", "NVIDIA"}
 
 # for gpt5, since max tokens is not supported
 MODELS_WITHOUT_KWARGS = {
-    "openai.gpt-5.2",
     "openai.gpt-4o-search-preview",
     "openai.gpt-4o-search-preview-2025-03-11",
 }
@@ -66,17 +65,20 @@ def get_llm(model_id=LLM_MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_TOKEN
     Returns:
         ChatOCIGenAI: An instance of the OCI GenAI language model.
     """
-    # provider is the first component in model_id (e.g., openai, xai, meta, cohere)
-    _provider = model_id.split(".")[0]
-
-    if model_id not in MODELS_WITHOUT_KWARGS:
+    if model_id in MODELS_WITHOUT_KWARGS:
+        # for some models (OpenAI search) you cannot set those params
+        _model_kwargs = None
+    elif model_id.startswith("openai."):
+        # langchain-oci expects max_completion_tokens for OpenAI models.
+        _model_kwargs = {
+            "temperature": temperature,
+            "max_completion_tokens": max_tokens,
+        }
+    else:
         _model_kwargs = {
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-    else:
-        # for some models (OpenAI search) you cannot set those params
-        _model_kwargs = None
 
     llm = ChatOCIGenAI(
         auth_type=AUTH,

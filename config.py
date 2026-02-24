@@ -1,7 +1,7 @@
 """
 File name: config.py
 Author: Luigi Saetta
-Date last modified: 2025-07-02
+Last modified: 24-02-2026
 Python Version: 3.11
 
 Description:
@@ -23,6 +23,8 @@ Notes:
 Warnings:
     This module is in development, may change in future versions.
 """
+import os
+
 
 DEBUG = False
 
@@ -62,7 +64,6 @@ SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com
 MAIN_LANGUAGE = "same as the question"
 
 if REGION == "us-chicago-1":
-    # for now only available in chicago region
     MODEL_LIST = [
         "openai.gpt-oss-120b",
         "google.gemini-2.5-pro",
@@ -72,7 +73,7 @@ if REGION == "us-chicago-1":
     ]
 
     # for reranker
-    RERANKER_MODEL_ID = "xai.grok-4-fast-non-reasoning"
+    RERANKER_MODEL_ID = "openai.gpt-oss-120b"
 else:
     MODEL_LIST = [
         "openai.gpt-oss-120b",
@@ -82,7 +83,7 @@ else:
         "cohere.command-a-03-2025",
     ]
 
-    RERANKER_MODEL_ID = "cohere.command-a-03-2025"
+    RERANKER_MODEL_ID = "openai.gpt-oss-120b"
 
 ENABLE_USER_FEEDBACK = True
 
@@ -111,4 +112,5 @@ CHUNK_SIZE = 4000
 CHUNK_OVERLAP = 100
 
 # section for citation server
-CITATION_BASE_URL = "http://127.0.0.1:8008/"
+CITATION_SERVER_PORT = int(os.getenv("CITATION_SERVER_PORT", "8008"))
+CITATION_BASE_URL = os.getenv("CITATION_BASE_URL", f"http://127.0.0.1:{CITATION_SERVER_PORT}/")

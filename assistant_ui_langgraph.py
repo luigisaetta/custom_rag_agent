@@ -2,7 +2,7 @@
 File name: assistant_ui.py
 Author: Luigi Saetta
 Date created: 2024-12-04
-Date last modified: 2025-07-01
+Last modified: 24-02-2026
 Python Version: 3.11
 
 Description:

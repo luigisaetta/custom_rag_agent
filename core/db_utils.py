@@ -1,7 +1,7 @@
 """
 File name: db_utils.py
 Author: Luigi Saetta
-Date last modified: 2025-07-30
+Last modified: 24-02-2026
 Python Version: 3.11
 
 Description:
