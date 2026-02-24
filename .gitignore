@@ -1,0 +1,10 @@
+config_private.py
+config_private_luigi.py
+ai23.key
+ai23.key.pub
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

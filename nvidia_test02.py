@@ -3,7 +3,7 @@ To test Embeddings from NVIDIA NIMS
 """
 
 import numpy as np
-from custom_rest_embeddings import CustomRESTEmbeddings
+from core.custom_rest_embeddings import CustomRESTEmbeddings
 
 #
 # Main

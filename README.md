@@ -3,34 +3,55 @@ This repository contains the code for the development of a **custom RAG Agent**,
 
 **Author**: L. Saetta
 
-**Reviewed**: 23.09.2025
+**Reviewed**: 24.02.2026
 
 ![UI](images/ui_image.png)
+
+## When to use this assett
+Thios assett shows you how to build a Custom RAG Agent based on LangGraph and OCI Generatice AI.
+It is fully customizable.
 
 ## Design and implementation
 * The agent is implemented using **LangGraph**
 * Vector Search is implemented, using Langchain, on top of Oracle 23AI
 * A **reranker** can be used to refine the search
 
+## Project structure
+```
+.
+├── agent/                  # LangGraph agent workflow + nodes
+│   ├── rag_agent.py
+│   ├── agent_state.py
+│   ├── query_rewriter.py
+│   ├── vector_search.py
+│   ├── reranker.py
+│   ├── answer_generator.py
+│   ├── content_moderation.py
+│   └── prompts.py
+├── core/                   # shared models/utilities/data helpers
+│   ├── oci_models.py
+│   ├── custom_rest_embeddings.py
+│   ├── citation_utils.py
+│   ├── db_utils.py
+│   ├── chunk_index_utils.py
+│   ├── bm25_search.py
+│   └── utils.py
+├── assistant_ui_langgraph.py
+├── rag_agent_api.py
+├── pages/
+└── tests/
+```
+
 ### Design decisions:
 * For every node of the graph there is a dedicated Python class (a **Runnable**, as QueryRewriter...)
 * **Reranker** is implemented using a LLM. As other option, it is easy to plug-in, for example, Cohere reranker
 * The agent is integrated with **OCI APM**, for **Observability**; Integration using **py-zipkin**
 * UI implemented using **Streamlit**
-* **Semantic Search** is also exposed as a [MCP server](./mcp_semantic_search_with_iam.py) 
 
 ### Streaming:
 * Support for streaming events from the agent: as soon as a step is completed (Vector Search, Reranking, ...) the UI is updated.
 For example, links to the documentation' chunks are displayed before the final answer is ready.
 * Streaming of the final answer.
-
-### MCP support:
-(07/2025) I have added an implementation of an **MCP** server that exposes the Semantic Search feature.
-* added a [demo LLM with MCP](./ui_mcp_agent.py) showing how to integrate a generic MCP server in a Chatbot using a LLM.
-
-**Security** can be handled in two ways:
-* custom: generate the **JWT token** using the library **PyJWT**
-* **OCI**: generate the JWT token using **OCI IAM**
 
 ## Status
 It is always and proudly **WIP**.
@@ -49,5 +70,8 @@ For example, to ensure that final responses do not disclose Personally Identifia
 * use Python 3.11
 * use the requirements.txt
 * create your config_private.py using the template provided
-* for MCP server: create a confidential application in **OCI IAM** to handle JWT tokens.
 
+## License
+The assett is licensed under **MIT** license.
+
+See [LICENSE](./LICENSE)

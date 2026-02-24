@@ -44,12 +44,3 @@ CONNECT_ARGS = {
 
 # integration with APM
 APM_PUBLIC_KEY = "123456789PM"
-
-# to add JWT to MCP
-JWT_SECRET = "your-secret"
-JWT_ALGORITHM = "HS256"
-
-# if using IAM to generate JWT token
-OCI_CLIENT_ID = "your-client-id"
-# th ocid of the secret in the vault
-SECRET_OCID = "secret-ocid"

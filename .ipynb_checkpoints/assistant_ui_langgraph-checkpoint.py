@@ -1,8 +1,8 @@
 """
 File name: assistant_ui.py
 Author: Luigi Saetta
-Date created: 2024-12-04
-Date last modified: 2025-07-01
+Date created: 2023-12-04
+Date last modified: 2025-03-19
 Python Version: 3.11
 
 Description:
@@ -15,8 +15,7 @@ License:
     This code is released under the MIT License.
 
 Notes:
-    This is part of a  demo for a RAG solution implemented
-    using LangGraph
+    This is part of a  series of demo developed using OCI GenAI and LangChain
 
 Warnings:
     This module is in development, may change in future versions.
@@ -37,10 +36,15 @@ from agent.rag_agent import State, create_workflow
 from rag_feedback import RagFeedback
 from transport import http_transport
 from core.utils import get_console_logger
-from core.citation_utils import build_citation_url, parse_page_number
-
-# changed to better manage ENABLE_TRACING (can be enabled from UI)
-import config
+from config import (
+    AGENT_NAME,
+    DEBUG,
+    COLLECTION_LIST,
+    MODEL_LIST,
+    LANGUAGE_LIST,
+    MAX_MSGS_IN_HISTORY,
+    ENABLE_USER_FEEDBACK,
+)
 
 # Constant
 
@@ -61,15 +65,13 @@ if "thread_id" not in st.session_state:
     # generate a new thread_Id
     st.session_state.thread_id = str(uuid.uuid4())
 if "model_id" not in st.session_state:
-    st.session_state.model_id = (
-        config.LLM_MODEL_ID
-        if config.LLM_MODEL_ID in config.MODEL_LIST
-        else config.MODEL_LIST[0]
-    )
+    st.session_state.model_id = "meta.llama3.3-70B"
+if "main_language" not in st.session_state:
+    st.session_state.main_language = "en"
 if "enable_reranker" not in st.session_state:
     st.session_state.enable_reranker = True
 if "collection_name" not in st.session_state:
-    st.session_state.collection_name = config.COLLECTION_LIST[0]
+    st.session_state.collection_name = COLLECTION_LIST[0]
 
 # to manage feedback
 if "get_feedback" not in st.session_state:
@@ -106,8 +108,8 @@ def add_to_chat_history(msg):
 def get_chat_history():
     """return the chat history from the session"""
     return (
-        st.session_state.chat_history[-config.MAX_MSGS_IN_HISTORY :]
-        if config.MAX_MSGS_IN_HISTORY > 0
+        st.session_state.chat_history[-MAX_MSGS_IN_HISTORY:]
+        if MAX_MSGS_IN_HISTORY > 0
         else st.session_state.chat_history
     )
 
@@ -133,28 +135,6 @@ def register_feedback():
     st.session_state.get_feedback = False
 
 
-def render_references(citations: list) -> None:
-    """
-    Render references in a collapsable section and include link in each reference dict.
-    """
-    if not citations:
-        st.sidebar.write("No references available.")
-        return
-
-    with st.sidebar.expander("Show references", expanded=False):
-        for ref in citations:
-            source = ref.get("source", "unknown")
-            page = ref.get("page", "")
-            page_number = parse_page_number(page)
-            if page_number is not None:
-                url = build_citation_url(source, page_number)
-                st.markdown(
-                    f'{{"source": "{source}", "page": "{page}", "link": [{url}]({url})}}'
-                )
-            else:
-                st.markdown(f'{{"source": "{source}", "page": "{page}", "link": ""}}')
-
-
 #
 # Main
 #
@@ -167,31 +147,23 @@ if st.sidebar.button("Clear Chat History"):
 
 st.sidebar.header("Options")
 
-st.sidebar.text_input(label="Region", value=config.REGION, disabled=True)
-
 # the collection used for semantic search
 st.session_state.collection_name = st.sidebar.selectbox(
     "Collection name",
-    config.COLLECTION_LIST,
+    COLLECTION_LIST,
 )
 
+# add the choice of LLM (not used for now)
+st.session_state.main_language = st.sidebar.selectbox(
+    "Select the language for the answer",
+    LANGUAGE_LIST,
+)
 st.session_state.model_id = st.sidebar.selectbox(
     "Select the Chat Model",
-    config.MODEL_LIST,
-    index=(
-        config.MODEL_LIST.index(st.session_state.model_id)
-        if st.session_state.model_id in config.MODEL_LIST
-        else 0
-    ),
+    MODEL_LIST,
 )
-
-st.sidebar.text_input(label="Embed Model", value=config.EMBED_MODEL_ID, disabled=True)
-
 st.session_state.enable_reranker = st.sidebar.checkbox(
     "Enable Reranker", value=True, disabled=False
-)
-config.ENABLE_TRACING = st.sidebar.checkbox(
-    "Enable tracing", value=False, disabled=False
 )
 
 
@@ -224,34 +196,30 @@ if question := st.chat_input("Hello, how can I help you?"):
                 # collect the results of all steps
                 results = []
                 ERROR = None
-                FULL_RESPONSE = ""
 
                 # integration with tracing, start the trace
                 with zipkin_span(
-                    service_name=config.AGENT_NAME,
+                    service_name=AGENT_NAME,
                     span_name="stream",
                     transport_handler=http_transport,
                     encoding=Encoding.V2_JSON,
                     sample_rate=100,
                 ) as span:
+                    # loop to manage streaming
                     # set the agent config
                     agent_config = {
                         "configurable": {
                             "model_id": st.session_state.model_id,
-                            "embed_model_type": config.EMBED_MODEL_TYPE,
                             "enable_reranker": st.session_state.enable_reranker,
-                            "enable_tracing": config.ENABLE_TRACING,
-                            "main_language": config.MAIN_LANGUAGE,
+                            "main_language": st.session_state.main_language,
                             "collection_name": st.session_state.collection_name,
                             "thread_id": st.session_state.thread_id,
                         }
                     }
 
-                    logger.info("")
-                    logger.info("Agent config: %s", agent_config)
-                    logger.info("")
+                    if DEBUG:
+                        logger.info("Agent config: %s", agent_config)
 
-                    # loop to manage streaming
                     for event in st.session_state.workflow.stream(
                         input_state,
                         config=agent_config,
@@ -271,7 +239,7 @@ if question := st.chat_input("Hello, how can I help you?"):
                                 st.sidebar.write(value["standalone_question"])
                             if key == "Rerank":
                                 st.sidebar.header("References:")
-                                render_references(value["citations"])
+                                st.sidebar.write(value["citations"])
 
                 # process final result from agent
                 if ERROR is None:
@@ -281,19 +249,19 @@ if question := st.chat_input("Hello, how can I help you?"):
                     # Stream
                     with st.chat_message(ASSISTANT):
                         response_container = st.empty()
-                        FULL_RESPONSE = ""
+                        full_response = ""
 
                         for chunk in answer_generator:
-                            FULL_RESPONSE += chunk.content
-                            response_container.markdown(FULL_RESPONSE + "▌")
+                            full_response += chunk.content
+                            response_container.markdown(full_response + "▌")
 
-                        response_container.markdown(FULL_RESPONSE)
+                        response_container.markdown(full_response)
 
                     elapsed_time = round((time.time() - time_start), 1)
                     logger.info("Elapsed time: %s sec.", elapsed_time)
                     logger.info("")
 
-                    if config.ENABLE_USER_FEEDBACK:
+                    if ENABLE_USER_FEEDBACK:
                         st.session_state.get_feedback = True
 
                 else:
@@ -301,8 +269,7 @@ if question := st.chat_input("Hello, how can I help you?"):
 
                 # Add user/assistant message to chat history
                 add_to_chat_history(HumanMessage(content=question))
-                if FULL_RESPONSE:
-                    add_to_chat_history(AIMessage(content=FULL_RESPONSE))
+                add_to_chat_history(AIMessage(content=full_response))
 
                 # get the feedback
                 if st.session_state.get_feedback:

@@ -12,10 +12,10 @@ import streamlit as st
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config import DEBUG, COLLECTION_LIST
-from chunk_index_utils import load_and_split_pdf, load_and_split_docx
-from vector_search import SemanticSearch
-from db_utils import list_collections, list_books_in_collection
-from utils import get_console_logger
+from core.chunk_index_utils import load_and_split_pdf, load_and_split_docx
+from agent.vector_search import SemanticSearch
+from core.db_utils import list_collections, list_books_in_collection
+from core.utils import get_console_logger
 
 # init session
 if COLLECTION_LIST:

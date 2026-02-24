@@ -11,9 +11,9 @@ import json
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from rag_agent import create_workflow
-from agent_state import State
-from utils import get_console_logger
+from agent.rag_agent import create_workflow
+from agent.agent_state import State
+from core.utils import get_console_logger
 from config import DEBUG, DEFAULT_COLLECTION, LLM_MODEL_ID, EMBED_MODEL_TYPE
 
 MEDIA_TYPE = "application/json"
