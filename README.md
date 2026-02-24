@@ -35,6 +35,7 @@ Use this project as a reference implementation when you need:
 │   ├── custom_rest_embeddings.py
 │   ├── citation_utils.py
 │   ├── db_utils.py
+│   ├── rag_feedback.py
 │   ├── chunk_index_utils.py
 │   ├── bm25_search.py
 │   └── utils.py

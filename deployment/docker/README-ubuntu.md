@@ -141,9 +141,9 @@ By default:
 If using UFW:
 
 ```bash
-sudo ufw allow 8501/tcp
-sudo ufw allow 8008/tcp
-sudo ufw status
+sudo iptables -I INPUT -p tcp -s 0.0.0.0/0 --dport 8501 -j ACCEPT
+sudo iptables -I INPUT -p tcp -s 0.0.0.0/0 --dport 8008 -j ACCEPT
+sudo service netfilter-persistent save
 ```
 
 If you want citation server private, remove its `ports:` mapping from compose and keep only internal access.

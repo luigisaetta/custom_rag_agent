@@ -23,7 +23,6 @@ COPY agent /app/agent
 COPY core /app/core
 COPY pages /app/pages
 COPY assistant_ui_langgraph.py /app/assistant_ui_langgraph.py
-COPY rag_feedback.py /app/rag_feedback.py
 COPY transport.py /app/transport.py
 COPY config.py /app/config.py
 COPY config_private_template.py /app/config_private_template.py
