@@ -9,3 +9,7 @@ __pycache__/
 *$py.class
 .pytest_cache/
 deployment/docker/nginx/.htpasswd
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
