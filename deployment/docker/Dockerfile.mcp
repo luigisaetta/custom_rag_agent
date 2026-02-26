@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY deployment/docker/requirements.mcp.txt /tmp/requirements.mcp.txt
+RUN python -m pip install --upgrade pip && \
+    python -m pip install -r /tmp/requirements.mcp.txt
+
+COPY core /app/core
+COPY mcp_servers /app/mcp_servers
+COPY config.py /app/config.py
+
+EXPOSE 8010
+
+CMD ["python", "mcp_servers/server.py"]

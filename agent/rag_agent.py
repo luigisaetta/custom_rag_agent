@@ -31,6 +31,7 @@ from agent.agent_state import State
 from agent.content_moderation import ContentModerator
 from agent.query_rewriter import QueryRewriter
 from agent.vector_search import SemanticSearch
+from agent.hybrid_search import HybridSearch
 from agent.reranker import Reranker
 from agent.answer_generator import AnswerGenerator
 
@@ -48,15 +49,18 @@ def create_workflow():
     query_rewriter = QueryRewriter()
     # step 2: do semantic search
     semantic_search = SemanticSearch()
-    # step 3: filter and rerank, using a LLM
+    # step 3: hybrid search placeholder (feature-flagged)
+    hybrid_search = HybridSearch()
+    # step 4: filter and rerank, using a LLM
     reranker = Reranker()
-    # step 4: genereta final answer
+    # step 5: generate final answer
     answer_generator = AnswerGenerator()
 
     # Add nodes
     workflow.add_node("Moderator", moderator)
     workflow.add_node("QueryRewrite", query_rewriter)
     workflow.add_node("Search", semantic_search)
+    workflow.add_node("HybridSearch", hybrid_search)
     workflow.add_node("Rerank", reranker)
     workflow.add_node("Answer", answer_generator)
 
@@ -64,7 +68,8 @@ def create_workflow():
     workflow.add_edge(START, "Moderator")
     workflow.add_edge("Moderator", "QueryRewrite")
     workflow.add_edge("QueryRewrite", "Search")
-    workflow.add_edge("Search", "Rerank")
+    workflow.add_edge("Search", "HybridSearch")
+    workflow.add_edge("HybridSearch", "Rerank")
     workflow.add_edge("Rerank", "Answer")
     workflow.add_edge("Answer", END)
 

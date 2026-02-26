@@ -1,5 +1,13 @@
 """
-BM25 Search Engine with Oracle Database
+File name: core/bm25_search.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+
+License: MIT
+
+Description: 
+    BM25 search engine implementation that indexes text retrieved from Oracle Database.
 """
 
 import re
@@ -7,7 +15,7 @@ import oracledb
 import numpy as np
 from rank_bm25 import BM25Okapi
 from core.utils import get_console_logger
-from config_private import CONNECT_ARGS
+from core.db_utils import get_connection
 
 logger = get_console_logger()
 
@@ -27,34 +35,48 @@ class BM25OracleSearch:
         self.table_name = table_name
         self.text_column = text_column
         self.batch_size = batch_size
+        self.docs = []
         self.texts = []
         self.tokenized_texts = []
         self.bm25 = None
         self.index_data()
 
-    def connect_db(self):
+    @staticmethod
+    def _validate_identifier(identifier: str) -> str:
         """
-        Establishes a connection to the Oracle database.
+        Validate table/column names before interpolating into SQL.
         """
-        try:
-            connection = oracledb.connect(**CONNECT_ARGS)
-            return connection
-        except oracledb.DatabaseError as e:
-            logger.info("Database connection error: %s", e)
-            return None
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", identifier):
+            raise ValueError(f"Invalid SQL identifier: {identifier!r}")
+        return identifier
 
-    def fetch_text_data(self):
+    def fetch_docs_data(self):
         """
-        Fetches text data from the specified table and column.
-        Used to initialize the index.
+        Fetches chunk text and metadata from the specified table.
+        Falls back to text-only when METADATA is unavailable.
         """
-
         _results = []
+        table_name = self._validate_identifier(self.table_name)
+        text_column = self._validate_identifier(self.text_column)
 
-        with self.connect_db() as conn:
+        with get_connection() as conn:
             with conn.cursor() as cursor:
-                query = f"SELECT {self.text_column} FROM {self.table_name}"
-                cursor.execute(query)
+                query_with_metadata = f"""
+                    SELECT
+                        {text_column},
+                        json_value(METADATA, '$.source') AS source,
+                        json_value(METADATA, '$.page_label') AS page_label
+                    FROM {table_name}
+                """
+
+                query_text_only = f"SELECT {text_column} FROM {table_name}"
+
+                has_metadata = True
+                try:
+                    cursor.execute(query_with_metadata)
+                except oracledb.DatabaseError:
+                    has_metadata = False
+                    cursor.execute(query_text_only)
 
                 while True:
                     # Fetch records in batches
@@ -69,10 +91,24 @@ class BM25OracleSearch:
 
                         if isinstance(lob_data, oracledb.LOB):
                             # Read LOB content
-                            _results.append(lob_data.read())
+                            chunk_text = lob_data.read()
                         else:
                             # Fallback for non-LOB data
-                            _results.append(str(lob_data))
+                            chunk_text = str(lob_data)
+
+                        if has_metadata:
+                            source = row[1] or table_name
+                            page_label = row[2] or ""
+                        else:
+                            source = table_name
+                            page_label = ""
+
+                        _results.append(
+                            {
+                                "page_content": chunk_text,
+                                "metadata": {"source": source, "page_label": page_label},
+                            }
+                        )
 
         return _results
 
@@ -90,9 +126,25 @@ class BM25OracleSearch:
         Reads text from the database and prepares BM25 index.
         """
         logger.info("Creating BM25 index...")
+        try:
+            self.docs = self.fetch_docs_data()
+        except oracledb.DatabaseError as exc:
+            logger.error("Failed to fetch data for BM25 indexing: %s", exc)
+            self.docs = []
+            self.texts = []
+            self.tokenized_texts = []
+            self.bm25 = None
+            return
 
-        self.texts = self.fetch_text_data()
+        valid_docs = [doc for doc in self.docs if doc.get("page_content")]
+        self.docs = valid_docs
+        self.texts = [doc["page_content"] for doc in self.docs]
         self.tokenized_texts = [self.simple_tokenize(text) for text in self.texts]
+        if not self.tokenized_texts:
+            logger.warning("No text available for BM25 index creation.")
+            self.bm25 = None
+            return
+
         self.bm25 = BM25Okapi(self.tokenized_texts)
 
         logger.info("BM25 index created successfully!")
@@ -107,7 +159,14 @@ class BM25OracleSearch:
         :return: List of tuples (text, score)
         """
         if not self.bm25:
-            print("BM25 index not initialized. Please check data indexing.")
+            logger.warning("BM25 index not initialized. Please check data indexing.")
+            return []
+
+        if not query or not query.strip():
+            logger.warning("Empty query received in BM25 search.")
+            return []
+
+        if top_n <= 0:
             return []
 
         query_tokens = self.simple_tokenize(query)
@@ -118,24 +177,50 @@ class BM25OracleSearch:
 
         return _results
 
+    def search_docs(self, query, top_n=5):
+        """
+        Performs a BM25 search returning full docs with metadata.
+        """
+        if not self.bm25:
+            logger.warning("BM25 index not initialized. Please check data indexing.")
+            return []
 
-# Example Usage:
-# credential are packed in CONNECT_ARGS
+        if not query or not query.strip():
+            logger.warning("Empty query received in BM25 search.")
+            return []
+
+        if top_n <= 0:
+            return []
+
+        query_tokens = self.simple_tokenize(query)
+        scores = self.bm25.get_scores(query_tokens)
+        ranked_indices = np.argsort(scores)[::-1][:top_n]
+
+        return [
+            {
+                "page_content": self.docs[i]["page_content"],
+                "metadata": self.docs[i]["metadata"] or {},
+                "score": float(scores[i]),
+            }
+            for i in ranked_indices
+        ]
+
+
+# Example usage: DB credentials are resolved by `core.db_utils.get_connection()`.
 
 
 def run_test():
     """
     To run a quick test.
     """
-    table_name = "BOOKS"
+    table_name = "COLL01"
     text_column = "TEXT"
 
     # create the index
     bm25_search = BM25OracleSearch(table_name, text_column)
 
     questions = [
-        "Chi è Luigi Saetta?",
-        "What are the main innovation produced by GPT-4?",
+        "Qual è il valore di resistenza elettrica per considerare un pavimento come statico dissipativo?",
     ]
 
     for _question in questions:
@@ -143,11 +228,9 @@ def run_test():
 
         # Print search results
         for text, score in results:
-            print(f"Score: {score:.2f} - Text: {text}")
+            print(f"Score: {score:.2f} - Text:\n{text}")
             print("")
 
 
-#
-# Main
-#
-run_test()
+if __name__ == "__main__":
+    run_test()

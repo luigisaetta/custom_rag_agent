@@ -34,12 +34,13 @@ from py_zipkin.zipkin import zipkin_span
 
 from agent.agent_state import State
 from core.oci_models import get_llm
+from core.retry_utils import stream_with_retry
 from agent.prompts import (
     ANSWER_PROMPT_TEMPLATE,
 )
 
 from core.utils import get_console_logger
-from config import AGENT_NAME, DEBUG
+from config import AGENT_NAME, DEBUG, LLM_MAX_RETRIES
 
 logger = get_console_logger()
 
@@ -124,8 +125,12 @@ class AnswerGenerator(Runnable):
 
             messages.append(HumanMessage(content=the_question))
 
-            # here we invoke the LLM and we return the generator
-            final_answer = llm.stream(messages)
+            # return streaming output with bounded retries on early transient errors
+            final_answer = stream_with_retry(
+                lambda: llm.stream(messages),
+                max_attempts=LLM_MAX_RETRIES,
+                operation_name="Answer LLM stream",
+            )
 
         except Exception as e:
             logger.error("Error in generate_answer: %s", e)

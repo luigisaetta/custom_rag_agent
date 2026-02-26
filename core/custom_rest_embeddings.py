@@ -1,7 +1,10 @@
 """
-Custom class to support Embeddings model deployed using NVIDIA E.
-
+File name: core/custom_rest_embeddings.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
 License: MIT
+Description: LangChain-compatible embeddings wrapper that calls NVIDIA NIM REST endpoints.
 """
 
 from typing import List

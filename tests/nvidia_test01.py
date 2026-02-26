@@ -1,5 +1,10 @@
 """
-To test Embeddings from NVIDIA NIMS
+File name: tests/nvidia_test01.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Manual test script to validate NVIDIA NIM embeddings response shape for Llama embed model.
 """
 
 import numpy as np

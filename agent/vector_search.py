@@ -93,6 +93,12 @@ class SemanticSearch(Runnable):
                     query=standalone_question, k=TOP_K
                 )
 
+            # annotate retrieval origin to support hybrid observability in references
+            for doc in relevant_docs:
+                if doc.metadata is None:
+                    doc.metadata = {}
+                doc.metadata["retrieval_type"] = "semantic"
+
             if DEBUG:
                 logger.info("Result from similarity search:")
                 logger.info(relevant_docs)

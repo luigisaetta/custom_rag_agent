@@ -49,8 +49,12 @@ NVIDIA_EMBED_MODEL_URL = "http://130.61.225.137:8000/v1/embeddings"
 # LLM
 # this is the default model
 LLM_MODEL_ID = "openai.gpt-oss-120b"
-TEMPERATURE = 0.1
-MAX_TOKENS = 4000
+# deterministic
+TEMPERATURE = 0.0
+# increased to support hybrid search with reranker
+MAX_TOKENS = 8000
+# transient failures (e.g., safety false positives / rate limits)
+LLM_MAX_RETRIES = 2
 
 
 # OCI general
@@ -89,7 +93,12 @@ ENABLE_USER_FEEDBACK = True
 
 # semantic search
 TOP_K = 10
-COLLECTION_LIST = ["COLL01"]
+# to enable/disable hybrid search (BM25 + semantic)
+ENABLE_HYBRID_SEARCH = True
+HYBRID_TOP_K = TOP_K
+
+# BM25 cache warms up from all the collections in this list
+COLLECTION_LIST = ["COLL01", "CONTRATTI"]
 DEFAULT_COLLECTION = "COLL01"
 
 
@@ -100,11 +109,13 @@ MAX_MSGS_IN_HISTORY = 10
 # reranking enabled or disabled from UI
 
 # Integration with APM
-ENABLE_TRACING = False
+ENABLE_TRACING = True
 AGENT_NAME = "OCI_CUSTOM_RAG_AGENT"
 
 # lsaetta-apm compartment
-APM_BASE_URL = "https://aaaadec2jjn3maaaaaaaaach4e.apm-agt.eu-frankfurt-1.oci.oraclecloud.com/20200101"
+# APM_BASE_URL = "https://aaaadec2jjn3maaaaaaaaach4e.apm-agt.eu-frankfurt-1.oci.oraclecloud.com/20200101"
+# sviluppoteng
+APM_BASE_URL = "https://aaaadhetxjknmaaaaaaaaac7wy.apm-agt.eu-frankfurt-1.oci.oraclecloud.com/20200101"
 APM_CONTENT_TYPE = "application/json"
 
 # for loading

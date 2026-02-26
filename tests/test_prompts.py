@@ -1,3 +1,12 @@
+"""
+File name: tests/test_prompts.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Unit tests for prompt templates placeholders used by reformulation, reranking, and answering steps.
+"""
+
 import agent.prompts as prompts
 
 

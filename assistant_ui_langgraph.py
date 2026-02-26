@@ -44,6 +44,19 @@ import config
 
 # Constant
 
+# Use full-width layout so chat responses can expand in the main panel.
+st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+    .stApp .block-container {
+        max-width: 98%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # name for the roles
 USER = "user"
 ASSISTANT = "assistant"
@@ -145,20 +158,23 @@ def render_references(citations: list) -> None:
         for ref in citations:
             source = ref.get("source", "unknown")
             page = ref.get("page", "")
+            retrieval_type = ref.get("retrieval_type", "semantic")
             page_number = parse_page_number(page)
             if page_number is not None:
                 url = build_citation_url(source, page_number)
                 st.markdown(
-                    f'{{"source": "{source}", "page": "{page}", "link": [{url}]({url})}}'
+                    f'{{"source": "{source}", "page": "{page}", "retrieval_type": "{retrieval_type}", "link": [{url}]({url})}}'
                 )
             else:
-                st.markdown(f'{{"source": "{source}", "page": "{page}", "link": ""}}')
+                st.markdown(
+                    f'{{"source": "{source}", "page": "{page}", "retrieval_type": "{retrieval_type}", "link": ""}}'
+                )
 
 
 #
 # Main
 #
-st.title("OCI Custom RAG Agent")
+st.title("OCI Enterprise Knowledge Assistant")
 
 # Reset button
 if st.sidebar.button("Clear Chat History"):

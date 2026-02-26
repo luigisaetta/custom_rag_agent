@@ -3,7 +3,8 @@
 This guide explains how to run this project on Ubuntu with Docker Compose, including:
 1. Streamlit app
 2. Citation image server
-3. Nginx reverse proxy with Basic Auth
+3. BM25 MCP server
+4. Nginx reverse proxy with Basic Auth
 
 ## 1) Prerequisites
 
@@ -132,21 +133,34 @@ Follow logs:
 docker compose -f deployment/docker/docker-compose.yml logs -f
 ```
 
+MCP-only local startup test:
+
+```bash
+docker compose -f deployment/docker/docker-compose.yml up -d --build bm25_mcp_server
+docker compose -f deployment/docker/docker-compose.yml ps bm25_mcp_server
+docker compose -f deployment/docker/docker-compose.yml logs -f bm25_mcp_server
+```
+
+Expected log lines include `BM25 MCP startup` and prewarm status.
+
 ## 8) Network and firewall
 
 By default:
 1. UI is exposed through Nginx on `8501/tcp`
 2. Citation server is exposed on `8008/tcp` (if kept enabled in compose)
+3. BM25 MCP server is exposed on `8010/tcp` (if kept enabled in compose)
 
-If using UFW:
+If using firewall:
 
 ```bash
 sudo iptables -I INPUT -p tcp -s 0.0.0.0/0 --dport 8501 -j ACCEPT
 sudo iptables -I INPUT -p tcp -s 0.0.0.0/0 --dport 8008 -j ACCEPT
+sudo iptables -I INPUT -p tcp -s 0.0.0.0/0 --dport 8010 -j ACCEPT
 sudo service netfilter-persistent save
 ```
 
 If you want citation server private, remove its `ports:` mapping from compose and keep only internal access.
+If you want MCP server private, remove its `ports:` mapping from compose and keep only internal access.
 
 ## 9) Validation checklist
 

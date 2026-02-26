@@ -1,4 +1,27 @@
 services:
+  bm25_mcp_server:
+    container_name: bm25_mcp_server
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile.mcp
+    ports:
+      - "${BM25_MCP_BIND_IP:-0.0.0.0}:${BM25_MCP_PORT:-8010}:8010"
+    environment:
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8010
+      - BM25_PREWARM_ENABLED=${BM25_PREWARM_ENABLED:-true}
+      - BM25_PREWARM_COLLECTIONS=${BM25_PREWARM_COLLECTIONS:-}
+      - BM25_TEXT_COLUMN=${BM25_TEXT_COLUMN:-TEXT}
+      - BM25_BATCH_SIZE=${BM25_BATCH_SIZE:-40}
+      - VECTOR_WALLET_DIR=/app/wallet_atp
+      - OCI_CONFIG_FILE=/root/.oci/config
+      - OCI_CLI_PROFILE=DEFAULT
+    volumes:
+      - ../../config_private.py:/app/config_private.py:ro
+      - /Users/lsaetta/Progetti/work-iren/wallet:/app/wallet_atp:ro
+      - ${HOME}/.oci:/root/.oci:ro
+    restart: unless-stopped
+
   citation_image_server:
     image: python:3.11-slim
     container_name: citation_image_server

@@ -38,8 +38,9 @@ from agent.prompts import (
     RERANKER_TEMPLATE,
 )
 from core.oci_models import get_llm
+from core.retry_utils import run_with_retry
 from core.utils import get_console_logger, extract_json_from_text
-from config import DEBUG, AGENT_NAME, TOP_K, RERANKER_MODEL_ID
+from config import DEBUG, AGENT_NAME, TOP_K, RERANKER_MODEL_ID, LLM_MAX_RETRIES
 
 logger = get_console_logger()
 
@@ -59,7 +60,13 @@ class Reranker(Runnable):
         Returns a list of reference dictionaries used in the reranker.
         """
         return [
-            {"source": doc["metadata"]["source"], "page": doc["metadata"]["page_label"]}
+            {
+                "source": (doc.get("metadata") or {}).get("source", "unknown"),
+                "page": (doc.get("metadata") or {}).get("page_label", ""),
+                "retrieval_type": (doc.get("metadata") or {}).get(
+                    "retrieval_type", "semantic"
+                ),
+            }
             for doc in docs
         ]
 
@@ -81,7 +88,11 @@ class Reranker(Runnable):
 
         messages = [HumanMessage(content=_prompt)]
 
-        llm_response = llm.invoke(messages)
+        llm_response = run_with_retry(
+            lambda: llm.invoke(messages),
+            max_attempts=LLM_MAX_RETRIES,
+            operation_name="Reranker LLM invoke",
+        )
 
         if DEBUG:
             logger.info("Reranker LLM response: %s", llm_response)
@@ -94,15 +105,24 @@ class Reranker(Runnable):
         if DEBUG:
             logger.info(json_dict.get("ranked_chunks", "No ranked chunks found."))
 
-        # Get indexes and sort documents
-        # added < TOP_K (hallucinations ?)
-        indexes = [
-            chunk["index"]
-            for chunk in json_dict.get("ranked_chunks", [])
-            if chunk["index"] < TOP_K
-        ]
+        # Keep LLM-ranked order, validate indices against input size,
+        # remove duplicates, then cap to TOP_K.
+        valid_indexes = []
+        seen = set()
+        max_index = len(retriever_docs)
 
-        return [retriever_docs[i] for i in indexes]
+        for chunk in json_dict.get("ranked_chunks", []):
+            idx = chunk.get("index")
+            if not isinstance(idx, int):
+                continue
+            if idx < 0 or idx >= max_index:
+                continue
+            if idx in seen:
+                continue
+            seen.add(idx)
+            valid_indexes.append(idx)
+
+        return [retriever_docs[i] for i in valid_indexes[:TOP_K]]
 
     @zipkin_span(service_name=AGENT_NAME, span_name="reranking")
     def invoke(self, input: State, config=None, **kwargs):

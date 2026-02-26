@@ -1,5 +1,10 @@
 """
-UI for file loading
+File name: pages/loader_ui.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Streamlit utility page to upload documents and inspect loaded documents per collection.
 """
 
 import sys

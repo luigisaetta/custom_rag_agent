@@ -1,3 +1,12 @@
+"""
+File name: tests/test_utils.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Unit tests for utility helpers related to JSON extraction, path cleanup, and document serialization.
+"""
+
 from types import SimpleNamespace
 
 import pytest

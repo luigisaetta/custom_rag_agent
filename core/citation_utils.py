@@ -1,5 +1,10 @@
 """
-Utilities to build citation links consistently across apps.
+File name: core/citation_utils.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Helpers to parse page numbers and build consistent citation image URLs.
 """
 
 import re

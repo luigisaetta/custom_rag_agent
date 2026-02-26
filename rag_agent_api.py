@@ -1,9 +1,10 @@
 """
-RAG Agent API
-
-Expose the RAG agent as a REST API using FastAPI
-
-For now it is not supporting chat_history
+File name: rag_agent_api.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: FastAPI entrypoint exposing the RAG agent workflow as a streaming `/invoke` endpoint.
 """
 
 import uuid

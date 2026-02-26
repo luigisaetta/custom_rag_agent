@@ -1,10 +1,10 @@
 """
+File name: core/chunk_index_utils.py
 Author: Luigi Saetta
-Date created: 2024-04-27
-Last modified: 24-02-2026
+Last modified: 25-02-2026
 Python Version: 3.11
-
-Usage: contains the functions to split in chunks and create the index
+License: MIT
+Description: Functions to load PDF/DOCX files, split content into chunks, and prepare metadata for indexing.
 """
 
 from collections import defaultdict

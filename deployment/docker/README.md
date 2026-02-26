@@ -1,11 +1,14 @@
-# Docker deployment (UI + Citation Image Server + Nginx)
+# Docker deployment (UI + Citation Image Server + BM25 MCP + Nginx)
 
 For Ubuntu-specific setup, see [README-ubuntu.md](./README-ubuntu.md).
+For a complete configuration checklist (files and required keys/paths), see [README-config.md](./README-config.md).
+Recommended deployment method: Docker Compose (`deployment/docker/docker-compose.yml`).
 
 This setup runs:
 1. Streamlit UI (`assistant_ui_langgraph.py`)
 2. A Python static web server for citation images
-3. Nginx reverse proxy in front of Streamlit
+3. BM25 MCP server (`fastmcp`) with startup prewarm cache
+4. Nginx reverse proxy in front of Streamlit
 
 ## Deployment settings
 
@@ -15,6 +18,7 @@ This setup runs:
 2. Oracle wallet mounted to `/app/wallet_atp`
 3. OCI config mounted to `/root/.oci`
 4. Citation image root mounted from `/Users/lsaetta/Progetti/work-iren/pages` to `/data/citations`
+5. BM25 MCP service exposed on `${BM25_MCP_PORT:-8010}`
 
 Current UI service settings:
 
@@ -39,6 +43,24 @@ ports:
   - "${CITATION_SERVER_BIND_IP:-0.0.0.0}:${CITATION_SERVER_PORT:-8008}:8008"
 volumes:
   - /Users/lsaetta/Progetti/work-iren/pages:/data/citations:ro
+```
+
+BM25 MCP server settings:
+
+```yaml
+ports:
+  - "${BM25_MCP_BIND_IP:-0.0.0.0}:${BM25_MCP_PORT:-8010}:8010"
+environment:
+  - MCP_HOST=0.0.0.0
+  - MCP_PORT=8010
+  - BM25_PREWARM_ENABLED=${BM25_PREWARM_ENABLED:-true}
+  - BM25_PREWARM_COLLECTIONS=${BM25_PREWARM_COLLECTIONS:-}
+  - BM25_TEXT_COLUMN=${BM25_TEXT_COLUMN:-TEXT}
+  - BM25_BATCH_SIZE=${BM25_BATCH_SIZE:-40}
+volumes:
+  - ../../config_private.py:/app/config_private.py:ro
+  - /Users/lsaetta/Progetti/work-iren/wallet:/app/wallet_atp:ro
+  - ${HOME}/.oci:/root/.oci:ro
 ```
 
 Nginx reverse proxy settings:
@@ -102,6 +124,7 @@ Important checks:
 4. In OCI config, `key_file` must resolve inside the mounted `/root/.oci/...` path in container.
 5. `/Users/lsaetta/Progetti/work-iren/pages` contains citation subfolders and `pageNNNN.png` files.
 6. `deployment/docker/nginx/.htpasswd` exists before starting Nginx.
+7. BM25 MCP container startup logs show successful prewarm (or explicit prewarm errors).
 
 ## Build
 
@@ -109,7 +132,22 @@ Run from the project root:
 
 ```bash
 docker build -f deployment/docker/Dockerfile -t custom-rag-agent-ui:latest .
+docker build -f deployment/docker/Dockerfile.mcp -t custom-rag-agent-mcp:latest .
 ```
+
+## Local MCP startup test
+
+Start only the MCP service:
+
+```bash
+docker compose -f deployment/docker/docker-compose.yml up -d --build bm25_mcp_server
+docker compose -f deployment/docker/docker-compose.yml ps bm25_mcp_server
+docker compose -f deployment/docker/docker-compose.yml logs -f bm25_mcp_server
+```
+
+Expected in logs:
+1. `BM25 MCP startup`
+2. Prewarm details (`warmed` collections and possible errors)
 
 ## Start (Recommended: Compose)
 

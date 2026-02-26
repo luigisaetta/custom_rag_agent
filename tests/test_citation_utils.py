@@ -1,3 +1,12 @@
+"""
+File name: tests/test_citation_utils.py
+Author: Luigi Saetta
+Last modified: 25-02-2026
+Python Version: 3.11
+License: MIT
+Description: Unit tests for citation URL and page number parsing helpers.
+"""
+
 import core.citation_utils as citation_utils
 import config
 

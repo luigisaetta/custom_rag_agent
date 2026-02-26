@@ -57,6 +57,13 @@ Use this project as a reference implementation when you need:
 - Reference links can appear before the final answer is completed
 - Final answer tokens are streamed
 
+## LLM retry behavior
+- Retries are enabled for reranker and final answer generation.
+- Retries are bounded by `LLM_MAX_RETRIES` in `config.py` (default: `2`).
+- Retry is attempted only for likely transient errors (for example: content/safety filter false positives, rate limit, timeout, and 5xx-style failures).
+- Backoff uses short exponential waits with jitter: about `1s`, then `2s` for additional attempts.
+- For streamed answers, retry is applied only if failure happens before the first token is emitted (to avoid duplicated partial output).
+
 ## Status
 This project is actively evolving and is considered **WIP**.
 
@@ -89,6 +96,7 @@ pip install -r requirements.txt
    - `EMBED_MODEL_TYPE`
    - `EMBED_MODEL_ID`
    - `RERANKER_MODEL_ID`
+   - `LLM_MAX_RETRIES`
 3. Retrieval behavior:
    - `TOP_K`
    - `COLLECTION_LIST`
