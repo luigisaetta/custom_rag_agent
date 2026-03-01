@@ -173,8 +173,15 @@ def render_references(citations: list) -> None:
             source = ref.get("source", "unknown")
             page = ref.get("page", "")
             retrieval_type = ref.get("retrieval_type", "semantic")
+            is_session_pdf_ref = str(retrieval_type).startswith("session_pdf")
             page_number = parse_page_number(page)
-            if page_number is not None:
+
+            # Session PDF references come from in-memory uploaded docs and have no static server URL.
+            if is_session_pdf_ref:
+                st.markdown(
+                    f'{{"source": "{source}", "page": "{page}", "retrieval_type": "{retrieval_type}"}}'
+                )
+            elif page_number is not None:
                 url = build_citation_url(source, page_number)
                 st.markdown(
                     f'{{"source": "{source}", "page": "{page}", "retrieval_type": "{retrieval_type}", "link": [{url}]({url})}}'
@@ -262,6 +269,7 @@ if st.sidebar.button("Scan PDF in memory"):
                 pdf_path=tmp_path,
                 vlm_model_id=config.VLM_MODEL_ID,
                 max_pages=config.SESSION_PDF_MAX_PAGES,
+                source_name=session_pdf.name,
                 on_progress=_on_page_progress,
             )
 
@@ -344,6 +352,8 @@ if question := st.chat_input("Hello, how can I help you?"):
                             "main_language": config.MAIN_LANGUAGE,
                             "collection_name": st.session_state.collection_name,
                             "thread_id": st.session_state.thread_id,
+                            "session_pdf_vector_store": st.session_state.session_pdf_vector_store,
+                            "session_pdf_chunks_count": st.session_state.session_pdf_chunks_count,
                         }
                     }
 
@@ -369,6 +379,12 @@ if question := st.chat_input("Hello, how can I help you?"):
                             if key == "QueryRewrite":
                                 st.sidebar.header("Standalone question:")
                                 st.sidebar.write(value["standalone_question"])
+                            if key == "IntentClassifier":
+                                logger.info(
+                                    "Intent decision: %s (has_session_pdf=%s)",
+                                    value.get("search_intent"),
+                                    value.get("has_session_pdf"),
+                                )
                             if key == "Rerank":
                                 st.sidebar.header("References:")
                                 render_references(value["citations"])

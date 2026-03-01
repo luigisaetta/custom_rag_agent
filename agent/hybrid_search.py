@@ -80,6 +80,27 @@ class HybridSearch(Runnable):
 
         return merged
 
+    def _merge_additional_docs(self, base_docs: list, additional_docs: list) -> list:
+        """
+        Merge additional docs into an existing list, deduplicating by normalized content.
+        Existing docs are preserved; additional docs are appended when not duplicate.
+        """
+        merged = list(base_docs)
+        seen = {
+            self._normalize_text(doc.get("page_content", ""))
+            for doc in merged
+            if self._normalize_text(doc.get("page_content", ""))
+        }
+
+        for doc in additional_docs:
+            content = self._normalize_text(doc.get("page_content", ""))
+            if not content or content in seen:
+                continue
+            merged.append(doc)
+            seen.add(content)
+
+        return merged
+
     def _bm25_docs(self, query: str, collection_name: str) -> list:
         """
         Retrieve BM25 candidates and convert them to the same doc shape used by the agent.
@@ -98,47 +119,78 @@ class HybridSearch(Runnable):
             _docs.append({"page_content": doc["page_content"], "metadata": metadata})
         return _docs
 
+    def _session_pdf_docs(self, query: str, config=None) -> list:
+        """
+        Retrieve candidates from the in-memory session PDF vector store.
+        Returns docs in the same serializable shape used by the agent.
+        """
+        configurable = (config or {}).get("configurable", {})
+        session_vs = configurable.get("session_pdf_vector_store")
+        if session_vs is None:
+            return []
+
+        results = session_vs.similarity_search(
+            query=query,
+            k=app_config.HYBRID_SESSION_TOP_K,
+        )
+        _docs = []
+        for doc in results:
+            metadata = doc.metadata or {}
+            metadata["retrieval_type"] = "session_pdf"
+            _docs.append({"page_content": doc.page_content, "metadata": metadata})
+        return _docs
+
     def invoke(self, input: State, config=None, **kwargs):
         """
-        Merge semantic and BM25 candidates when hybrid is enabled.
+        Merge retrieval candidates.
+        - GLOBAL_KB: semantic + optional bm25
+        - HYBRID: semantic + optional bm25 + session PDF (small additive budget)
         """
         retriever_docs = input.get("retriever_docs", [])
         error = input.get("error")
-
-        if not app_config.ENABLE_HYBRID_SEARCH:
-            return {"retriever_docs": retriever_docs, "error": error}
+        intent = (input.get("search_intent") or "GLOBAL_KB").upper()
 
         standalone_question = input.get("standalone_question", "")
         if not standalone_question:
             return {"retriever_docs": retriever_docs, "error": error}
 
+        merged_docs = retriever_docs
         collection_name = "UNKNOWN"
         if config and config.get("configurable"):
             collection_name = config["configurable"].get("collection_name", "UNKNOWN")
 
+        # 1) optional BM25 branch over DB retrieval
         bm25_docs = []
-        try:
-            bm25_docs = self._bm25_docs(standalone_question, collection_name)
-            merged_docs = self._merge_docs(retriever_docs, bm25_docs)
+        if app_config.ENABLE_HYBRID_SEARCH:
+            try:
+                bm25_docs = self._bm25_docs(standalone_question, collection_name)
+                merged_docs = self._merge_docs(retriever_docs, bm25_docs)
+            except Exception as exc:
+                logger.warning(
+                    "Hybrid BM25 retrieval failed, fallback to semantic only: %s", exc
+                )
+                merged_docs = retriever_docs
 
-            logger.info(
-                "Hybrid retrieval enabled. semantic=%d bm25=%d merged=%d top_k=%d",
-                len(retriever_docs),
-                len(bm25_docs),
-                len(merged_docs),
-                app_config.HYBRID_TOP_K,
-            )
-        except Exception as exc:
-            logger.warning("Hybrid BM25 retrieval failed, fallback to semantic only: %s", exc)
-            merged_docs = retriever_docs
+        # 2) intent-driven addition of session PDF docs
+        session_docs = []
+        if intent == "HYBRID":
+            try:
+                session_docs = self._session_pdf_docs(standalone_question, config=config)
+                merged_docs = self._merge_additional_docs(merged_docs, session_docs)
+            except Exception as exc:
+                logger.warning(
+                    "Hybrid session retrieval failed, fallback to DB-only docs: %s", exc
+                )
 
-        if app_config.DEBUG:
-            logger.info(
-                "Hybrid retrieval enabled. semantic=%d bm25=%d merged=%d top_k=%d",
-                len(retriever_docs),
-                len(bm25_docs),
-                len(merged_docs),
-                app_config.HYBRID_TOP_K,
-            )
+        logger.info(
+            "HybridSearch merged docs. intent=%s semantic=%d bm25=%d session=%d merged=%d bm25_top_k=%d session_top_k=%d",
+            intent,
+            len(retriever_docs),
+            len(bm25_docs),
+            len(session_docs),
+            len(merged_docs),
+            app_config.HYBRID_TOP_K,
+            app_config.HYBRID_SESSION_TOP_K,
+        )
 
         return {"retriever_docs": merged_docs, "error": error}

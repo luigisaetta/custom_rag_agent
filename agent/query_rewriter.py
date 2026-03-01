@@ -61,6 +61,7 @@ class QueryRewriter(Runnable):
         model_id = config["configurable"]["model_id"]
 
         user_request = input["user_request"]
+        standalone_question = user_request
         error = None
 
         if len(input["chat_history"]) > 0:
@@ -90,8 +91,5 @@ class QueryRewriter(Runnable):
             except Exception as e:
                 logger.error("Error in query_rewriting: %s", e)
                 error = str(e)
-        else:
-            # no previous requests, don't reformulate
-            standalone_question = user_request
 
         return {"standalone_question": standalone_question, "error": error}

@@ -39,6 +39,10 @@ class State(TypedDict):
 
     # the question reformulated using chat_history
     standalone_question: str = ""
+    # routing intent chosen by classifier node
+    search_intent: str = "GLOBAL_KB"
+    # true when a session in-memory pdf vector store is available
+    has_session_pdf: bool = False
 
     # similarity_search
     # 30/06: modified, now they're a dict with

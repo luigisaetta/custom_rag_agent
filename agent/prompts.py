@@ -95,3 +95,44 @@ Where:
 Ensure that only relevant chunks are included in the output. If no chunk is relevant, return an empty list.
 
 """
+
+INTENT_CLASSIFIER_TEMPLATE = """
+You are an intent classifier for a RAG agent.
+
+Classify the user request into exactly one intent:
+- GLOBAL_KB: answer should come from the global knowledge base.
+- SESSION_DOC: answer should come only from the uploaded in-session PDF.
+- HYBRID: answer needs both global knowledge base and session PDF.
+
+Decision rules:
+- If the user explicitly asks about "the uploaded PDF", "this document", "this file", or asks to summarize/extract/quote from it, prefer SESSION_DOC.
+- If the user asks a generic/domain question not tied to the uploaded file, prefer GLOBAL_KB.
+- If the user asks to combine uploaded document evidence with broader/company/general knowledge, use HYBRID.
+- Choose exactly one label.
+
+Few-shot examples:
+1) User: "Summarize the uploaded PDF in 5 bullet points."
+Intent: SESSION_DOC
+
+2) User: "What is Oracle 23AI vector search?"
+Intent: GLOBAL_KB
+
+3) User: "Based on the uploaded contract, and also on our company policy, can we terminate early?"
+Intent: HYBRID
+
+4) User: "In this file, what does section 4.2 say about penalties?"
+Intent: SESSION_DOC
+
+5) User: "Give me best practices for RAG evaluation."
+Intent: GLOBAL_KB
+
+Return only valid JSON with this shape:
+{{
+  "intent": "GLOBAL_KB|SESSION_DOC|HYBRID"
+}}
+
+Do not add explanations or any extra text.
+
+User request:
+{user_request}
+"""

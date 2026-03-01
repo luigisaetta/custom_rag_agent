@@ -49,6 +49,10 @@ NVIDIA_EMBED_MODEL_URL = "http://130.61.225.137:8000/v1/embeddings"
 # LLM
 # this is the default model
 LLM_MODEL_ID = "openai.gpt-oss-120b"
+# dedicated model for intent classification routing
+INTENT_MODEL_ID = "openai.gpt-oss-120b"
+# dedicated model for reranker
+RERANKER_MODEL_ID = "openai.gpt-oss-120b"
 # VLM used to OCR scanned PDFs uploaded in-session from UI
 VLM_MODEL_ID = "openai.gpt-5.2"
 # deterministic
@@ -75,24 +79,20 @@ MAIN_LANGUAGE = "same as the question"
 if REGION == "us-chicago-1":
     MODEL_LIST = [
         "openai.gpt-oss-120b",
-        "google.gemini-2.5-pro",
         "openai.gpt-5.2",
+        "google.gemini-2.5-pro",
         "meta.llama-3.3-70b-instruct",
         "cohere.command-a-03-2025",
-    ]
-
-    # for reranker
-    RERANKER_MODEL_ID = "openai.gpt-oss-120b"
+    ]    
 else:
     MODEL_LIST = [
         "openai.gpt-oss-120b",
-        "google.gemini-2.5-pro",
         "openai.gpt-5.2",
+        "google.gemini-2.5-pro",
         "meta.llama-3.3-70b-instruct",
         "cohere.command-a-03-2025",
     ]
 
-    RERANKER_MODEL_ID = "openai.gpt-oss-120b"
 
 ENABLE_USER_FEEDBACK = True
 
@@ -101,6 +101,8 @@ TOP_K = 10
 # to enable/disable hybrid search (BM25 + semantic)
 ENABLE_HYBRID_SEARCH = True
 HYBRID_TOP_K = TOP_K
+# conservative number of in-memory session chunks added when intent is HYBRID
+HYBRID_SESSION_TOP_K = 3
 
 # BM25 cache warms up from all the collections in this list
 COLLECTION_LIST = ["COLL01", "CONTRATTI"]

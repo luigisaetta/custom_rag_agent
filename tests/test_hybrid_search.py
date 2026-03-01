@@ -63,3 +63,32 @@ def test_hybrid_search_fallback_on_bm25_error(monkeypatch):
     state = {"retriever_docs": semantic_docs, "error": None, "standalone_question": "q"}
     out = node.invoke(state, config={"configurable": {"collection_name": "COLL01"}})
     assert out["retriever_docs"] == semantic_docs
+
+
+def test_hybrid_search_adds_session_docs_for_hybrid_intent(monkeypatch):
+    monkeypatch.setattr(hybrid_module.app_config, "ENABLE_HYBRID_SEARCH", True)
+    node = hybrid_module.HybridSearch()
+
+    semantic_docs = [
+        {"page_content": "Chunk A", "metadata": {"source": "s1", "page_label": "1"}},
+    ]
+    bm25_docs = [
+        {"page_content": "Chunk B", "metadata": {"source": "bm25", "page_label": ""}},
+    ]
+    session_docs = [
+        {"page_content": "Chunk C", "metadata": {"source": "upload.pdf", "page_label": "2"}},
+    ]
+
+    monkeypatch.setattr(node, "_bm25_docs", lambda query, collection: bm25_docs)
+    monkeypatch.setattr(node, "_session_pdf_docs", lambda query, config=None: session_docs)
+
+    state = {
+        "retriever_docs": semantic_docs,
+        "error": None,
+        "standalone_question": "q",
+        "search_intent": "HYBRID",
+    }
+    out = node.invoke(state, config={"configurable": {"collection_name": "COLL01"}})
+
+    contents = [doc["page_content"] for doc in out["retriever_docs"]]
+    assert contents == ["Chunk A", "Chunk B", "Chunk C"]

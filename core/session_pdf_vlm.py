@@ -10,7 +10,7 @@ import pypdfium2 as pdfium
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
 
-from core.chunk_index_utils import get_chunk_header, get_recursive_text_splitter
+from core.chunk_index_utils import get_recursive_text_splitter
 from core.oci_models import get_llm
 from core.utils import get_console_logger, remove_path_from_ref
 from config import SESSION_PDF_MAX_PAGES
@@ -76,6 +76,7 @@ def scan_pdf_to_docs_with_vlm(
     pdf_path: str,
     vlm_model_id: str,
     max_pages: int = SESSION_PDF_MAX_PAGES,
+    source_name: Optional[str] = None,
     on_progress: Optional[Callable[[int, int], None]] = None,
 ) -> Tuple[List[Document], int]:
     """
@@ -91,8 +92,10 @@ def scan_pdf_to_docs_with_vlm(
 
     llm = get_llm(model_id=vlm_model_id)
     text_splitter = get_recursive_text_splitter()
-    chunk_header, _ = get_chunk_header(pdf_path)
-    source_name = remove_path_from_ref(pdf_path)
+    effective_source_name = remove_path_from_ref(source_name or pdf_path)
+    # Use uploaded filename (when provided) so references/citations show real doc name.
+    doc_title = effective_source_name.rsplit(".", 1)[0]
+    chunk_header = f"# Doc. title: {doc_title}\n"
 
     docs: List[Document] = []
 
@@ -108,7 +111,7 @@ def scan_pdf_to_docs_with_vlm(
                     Document(
                         page_content=chunk_header + chunk,
                         metadata={
-                            "source": source_name,
+                            "source": effective_source_name,
                             "page_label": str(idx + 1),
                             "retrieval_type": "session_pdf_vlm",
                         },
@@ -120,10 +123,9 @@ def scan_pdf_to_docs_with_vlm(
 
     logger.info(
         "Session VLM scan completed for %s: pages=%d chunks=%d model=%s",
-        source_name,
+        effective_source_name,
         total_pages,
         len(docs),
         vlm_model_id,
     )
     return docs, total_pages
-

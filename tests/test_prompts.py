@@ -8,6 +8,7 @@ Description: Unit tests for prompt templates placeholders used by reformulation,
 """
 
 import agent.prompts as prompts
+from langchain_core.prompts import PromptTemplate
 
 
 def test_reformulate_prompt_has_required_placeholders():
@@ -24,3 +25,15 @@ def test_reranker_prompt_has_required_placeholders():
     tpl = prompts.RERANKER_TEMPLATE
     assert "{query}" in tpl
     assert "{chunks}" in tpl
+
+
+def test_intent_classifier_prompt_has_user_request_placeholder():
+    assert "{user_request}" in prompts.INTENT_CLASSIFIER_TEMPLATE
+
+
+def test_intent_classifier_prompt_formats_without_missing_keys():
+    prompt = PromptTemplate(
+        input_variables=["user_request"],
+        template=prompts.INTENT_CLASSIFIER_TEMPLATE,
+    ).format(user_request="test")
+    assert '"intent"' in prompt
