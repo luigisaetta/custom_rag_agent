@@ -112,9 +112,14 @@ if uploaded_file is not None and load_file:
     # save as a temporary file
     path_file_temp = os.path.join(tempfile.gettempdir(), only_name)
 
+    progress_text = st.empty()
+    progress_bar = st.progress(0)
+
     # write the temp file
+    progress_text.info("Saving uploaded file...")
     with open(path_file_temp, "wb") as tmp_file:
         tmp_file.write(uploaded_file.read())
+    progress_bar.progress(20)
 
     # check that the file is not already in the collection
     books_list = list_books(st.session_state.collection_name)
@@ -125,20 +130,36 @@ if uploaded_file is not None and load_file:
     if only_name not in books_list:
         logger.info("Loading %s ...", only_name)
 
-        docs = []
+        try:
+            docs = []
 
-        if file_ext == "pdf":
-            docs = load_and_split_pdf(path_file_temp)
+            progress_text.info("Scanning and splitting document...")
+            progress_bar.progress(50)
 
-        elif file_ext == "docx":
-            docs = load_and_split_docx(path_file_temp)
+            if file_ext == "pdf":
+                docs = load_and_split_pdf(path_file_temp)
 
-        if len(docs) > 0:
-            SemanticSearch().add_documents(
-                docs, collection_name=st.session_state.collection_name
-            )
+            elif file_ext == "docx":
+                docs = load_and_split_docx(path_file_temp)
 
-        st.success("Document loaded")
+            progress_text.info("Indexing chunks...")
+            progress_bar.progress(80)
+
+            if len(docs) > 0:
+                SemanticSearch().add_documents(
+                    docs, collection_name=st.session_state.collection_name
+                )
+
+            progress_bar.progress(100)
+            progress_text.success("Document scanning and loading completed.")
+            st.success("Document loaded")
+
+        except Exception as exc:
+            logger.error("Error while loading document: %s", exc)
+            progress_text.error("Document loading failed.")
+            st.error(str(exc))
 
     else:
+        progress_bar.empty()
+        progress_text.empty()
         st.error(f"{only_name} already in collection")

@@ -49,12 +49,17 @@ NVIDIA_EMBED_MODEL_URL = "http://130.61.225.137:8000/v1/embeddings"
 # LLM
 # this is the default model
 LLM_MODEL_ID = "openai.gpt-oss-120b"
+# VLM used to OCR scanned PDFs uploaded in-session from UI
+VLM_MODEL_ID = "openai.gpt-5.2"
 # deterministic
 TEMPERATURE = 0.0
 # increased to support hybrid search with reranker
 MAX_TOKENS = 8000
 # transient failures (e.g., safety false positives / rate limits)
 LLM_MAX_RETRIES = 2
+
+# max number of pages for in-memory session PDF scan
+SESSION_PDF_MAX_PAGES = 30
 
 
 # OCI general

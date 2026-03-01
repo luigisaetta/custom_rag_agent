@@ -23,11 +23,14 @@ Warnings:
 """
 
 import uuid
+import os
+import tempfile
 from typing import List, Union
 import time
 import streamlit as st
 
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.vectorstores import InMemoryVectorStore
 
 # for APM integration
 from py_zipkin.zipkin import zipkin_span
@@ -38,6 +41,8 @@ from core.rag_feedback import RagFeedback
 from core.transport import http_transport
 from core.utils import get_console_logger
 from core.citation_utils import build_citation_url, parse_page_number
+from core.session_pdf_vlm import scan_pdf_to_docs_with_vlm
+from core.oci_models import get_embedding_model
 
 # changed to better manage ENABLE_TRACING (can be enabled from UI)
 import config
@@ -87,6 +92,12 @@ if "collection_name" not in st.session_state:
 # to manage feedback
 if "get_feedback" not in st.session_state:
     st.session_state.get_feedback = False
+if "session_pdf_name" not in st.session_state:
+    st.session_state.session_pdf_name = ""
+if "session_pdf_chunks_count" not in st.session_state:
+    st.session_state.session_pdf_chunks_count = 0
+if "session_pdf_vector_store" not in st.session_state:
+    st.session_state.session_pdf_vector_store = None
 
 
 #
@@ -104,6 +115,9 @@ def display_msg_on_rerun(chat_hist: List[Union[HumanMessage, AIMessage]]) -> Non
 def reset_conversation():
     """Reset the chat history."""
     st.session_state.chat_history = []
+    st.session_state.session_pdf_name = ""
+    st.session_state.session_pdf_chunks_count = 0
+    st.session_state.session_pdf_vector_store = None
 
     # change thread_id
     st.session_state.thread_id = str(uuid.uuid4())
@@ -202,6 +216,7 @@ st.session_state.model_id = st.sidebar.selectbox(
 )
 
 st.sidebar.text_input(label="Embed Model", value=config.EMBED_MODEL_ID, disabled=True)
+st.sidebar.text_input(label="Session PDF VLM", value=config.VLM_MODEL_ID, disabled=True)
 
 st.session_state.enable_reranker = st.sidebar.checkbox(
     "Enable Reranker", value=True, disabled=False
@@ -209,6 +224,75 @@ st.session_state.enable_reranker = st.sidebar.checkbox(
 config.ENABLE_TRACING = st.sidebar.checkbox(
     "Enable tracing", value=False, disabled=False
 )
+
+st.sidebar.header("Session PDF (in-memory)")
+session_pdf = st.sidebar.file_uploader(
+    "Upload a PDF for this session",
+    type=["pdf"],
+    key="session_pdf_upload",
+)
+
+if st.sidebar.button("Scan PDF in memory"):
+    # process the uploaded PDF, extract text with VLM and 
+    # add it to an in-memory vector store for retrieval during the session
+    if session_pdf is None:
+        st.sidebar.warning("Please upload a PDF first.")
+    else:
+        status_slot = st.sidebar.empty()
+        progress_bar = st.sidebar.progress(0)
+        tmp_path = ""
+
+        try:
+            status_slot.info("Saving uploaded PDF...")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(session_pdf.read())
+                tmp_path = tmp_file.name
+            progress_bar.progress(20)
+
+            status_slot.info("Scanning PDF pages with VLM...")
+
+            def _on_page_progress(current_page: int, total_pages: int):
+                # Reserve [25..95] for per-page OCR progress.
+                if total_pages > 0:
+                    pct = 25 + int((current_page / total_pages) * 70)
+                    progress_bar.progress(min(pct, 95))
+
+            # scan the PDF with VLM, get the text chunks and the page count
+            docs, page_count = scan_pdf_to_docs_with_vlm(
+                pdf_path=tmp_path,
+                vlm_model_id=config.VLM_MODEL_ID,
+                max_pages=config.SESSION_PDF_MAX_PAGES,
+                on_progress=_on_page_progress,
+            )
+
+            # addings the scanned docs to an in-memory vector store, to be used for retrieval during the session
+            status_slot.info("Building in-memory vector index...")
+            progress_bar.progress(97)
+            embed_model = get_embedding_model(model_type=config.EMBED_MODEL_TYPE)
+            session_vs = InMemoryVectorStore(embedding=embed_model)
+            if docs:
+                session_vs.add_documents(docs)
+
+            st.session_state.session_pdf_vector_store = session_vs
+            st.session_state.session_pdf_name = session_pdf.name
+            st.session_state.session_pdf_chunks_count = len(docs)
+
+            progress_bar.progress(100)
+            status_slot.success(
+                f"Loaded '{session_pdf.name}' in memory ({page_count} pages, {len(docs)} chunks)."
+            )
+        except Exception as exc:
+            logger.error("Error in session PDF scan: %s", exc)
+            status_slot.error("PDF scan failed.")
+            st.sidebar.error(str(exc))
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+if st.session_state.session_pdf_name:
+    st.sidebar.caption(
+        f"In-memory PDF: {st.session_state.session_pdf_name} ({st.session_state.session_pdf_chunks_count} chunks)"
+    )
 
 
 #

@@ -93,10 +93,12 @@ pip install -r requirements.txt
    - `SERVICE_ENDPOINT`
 2. Model settings:
    - `LLM_MODEL_ID`
+   - `VLM_MODEL_ID` (used for in-session scanned PDF OCR on main UI page)
    - `EMBED_MODEL_TYPE`
    - `EMBED_MODEL_ID`
    - `RERANKER_MODEL_ID`
    - `LLM_MAX_RETRIES`
+   - `SESSION_PDF_MAX_PAGES` (guardrail for in-memory PDF scan)
 3. Retrieval behavior:
    - `TOP_K`
    - `COLLECTION_LIST`
