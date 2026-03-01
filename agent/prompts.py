@@ -43,8 +43,10 @@ provided in the context and the history of previous messages.
 Respond in a friendly and polite tone at all times.
 
 ## Constraints:
-- Answer based only on the provided context. If the context does not contain enough information, 
-  reply with: **I'm sorry, I don't have enough information in the provided context to answer that.**
+- Answer based only on the provided context.
+- If the context is partial, provide a best-effort answer grounded in available evidence,
+  and clearly state what information is missing or uncertain.
+- Do not invent facts that are not supported by the context.
 - Always answer in the same language as the user's request.
 - Always return your response in properly formatted markdown.
 
@@ -114,17 +116,17 @@ Few-shot examples:
 1) User: "Summarize the uploaded PDF in 5 bullet points."
 Intent: SESSION_DOC
 
-2) User: "What is Oracle 23AI vector search?"
+2) User: "Define class A1"
 Intent: GLOBAL_KB
 
-3) User: "Based on the uploaded contract, and also on our company policy, can we terminate early?"
+3) User: "Based on the uploaded contract, and also on our policy/regulations, can we terminate early?"
 Intent: HYBRID
 
 4) User: "In this file, what does section 4.2 say about penalties?"
 Intent: SESSION_DOC
 
-5) User: "Give me best practices for RAG evaluation."
-Intent: GLOBAL_KB
+5) User: "Analyze the document and identify areas that should be improved based on existing regulations."
+Intent: HYBRID
 
 Return only valid JSON with this shape:
 {{
@@ -135,4 +137,27 @@ Do not add explanations or any extra text.
 
 User request:
 {user_request}
+"""
+
+HYBRID_KB_QUERY_TEMPLATE = """
+You are helping a RAG system build a knowledge-base search query.
+
+Task:
+- Rewrite the standalone question into a KB-focused query.
+- Use the uploaded document excerpts to inject specific entities, constraints, and facts.
+- Keep the query compact and information-dense.
+
+Rules:
+- Return only the final query string.
+- Do not add explanations, labels, or markdown.
+- If excerpts are not useful, return the standalone question unchanged.
+
+User request:
+{user_request}
+
+Standalone question:
+{standalone_question}
+
+Uploaded document excerpts:
+{session_snippets}
 """

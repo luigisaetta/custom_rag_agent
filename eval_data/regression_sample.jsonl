@@ -1,0 +1,7 @@
+{"id":"glob_01","question":"Puoi definire la classificazione delle dispersioni di Gas","expected_intent":"GLOBAL_KB","expected_sources":["kb"],"must_contain":["A1"]}
+{"id":"glob_02","question":"Puoi definire la classificazione delle dispersioni di Gas A1?","expected_intent":"GLOBAL_KB","expected_sources":["kb"],"must_contain":["A1"],"expected_citations":[{"source":"PRG_1_07_LineeGuidaCIG_2020.pdf","page":"9"}]}
+{"id":"sess_01","question":"Sintetizza il documento caricato in max 5 bullet points.","session_pdf_path":"/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf","expected_intent":"SESSION_DOC","expected_sources":["session_pdf"]}
+{"id":"hyb_01","question":"Analizza il documento caricato ed indica aree di miglioramento in base alla normativa esistente.","session_pdf_path":"/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf","expected_intent":"HYBRID","expected_sources":["kb","session_pdf"]}
+{"id":"glob_03","question":"Definisci le azioni immediate da compiere per una dispersione A1.","session_pdf_path":"/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf","expected_intent":"GLOBAL_KB","expected_sources":["kb"], "must_contain":["A1"],"expected_citations":[{"source":"PRG_1_07_LineeGuidaCIG_2020.pdf","page":"10"}]}
+
+

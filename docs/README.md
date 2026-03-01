@@ -58,7 +58,30 @@ Workflow module: [rag_agent.py](../agent/rag_agent.py)
 
 Current high-level graph:
 
-`Moderator -> QueryRewrite -> IntentClassifier -> (Search | SessionSearch) -> ...`
+`Moderator -> QueryRewrite -> IntentClassifier -> (Search | SessionSearch | HybridQueryBuilder) -> ...`
+
+#### Intent Definition and Call Sequences
+
+Intent is defined by [intent_classifier.py](../agent/intent_classifier.py):
+
+- If no session PDF is present in memory, intent is forced to `GLOBAL_KB`.
+- If session PDF is present, a dedicated intent model classifies into one of:
+  - `GLOBAL_KB`
+  - `SESSION_DOC`
+  - `HYBRID`
+
+Graph-style sequences for each intent:
+
+```text
+GLOBAL_KB
+START -> Moderator -> QueryRewrite -> IntentClassifier -> Search -> HybridSearch -> Rerank -> Answer -> END
+
+SESSION_DOC
+START -> Moderator -> QueryRewrite -> IntentClassifier -> SessionSearch -> Rerank -> Answer -> END
+
+HYBRID
+START -> Moderator -> QueryRewrite -> IntentClassifier -> HybridQueryBuilder -> Search -> HybridSearch -> Rerank -> Answer -> END
+```
 
 Intent classifier node: [intent_classifier.py](../agent/intent_classifier.py)
 
@@ -93,6 +116,18 @@ Node: [hybrid_search.py](../agent/hybrid_search.py)
 5. Logs merged counts by source (`semantic`, `bm25`, `session`, `merged`).
 
 This is an additive strategy and keeps current DB retrieval behavior stable.
+
+### BM25 Cache Persistence
+
+BM25 indexes are persisted to a serialized cache file (`bm25_cache.pkl`) under `BM25_CACHE_DIR`.
+
+- If the file exists at startup, cache entries are loaded from disk.
+- If the file is missing (or incomplete), indexes are built from DB for configured collections and then saved.
+
+Default local path is `bm25_cache` (see `BM25_CACHE_DIR` in [config.py](../config.py)).
+In Docker Compose, UI and MCP use separate host folders:
+- `bm25_cache/ui`
+- `bm25_cache/mcp`
 
 ### References Behavior
 

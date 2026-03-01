@@ -19,6 +19,9 @@ This setup runs:
 3. OCI config mounted to `/root/.oci`
 4. Citation image root mounted from `/Users/lsaetta/Progetti/work-iren/pages` to `/data/citations`
 5. BM25 MCP service exposed on `${BM25_MCP_PORT:-8010}`
+6. Persistent BM25 cache host folders:
+   - `../../bm25_cache/ui` for UI service
+   - `../../bm25_cache/mcp` for MCP service
 
 Current UI service settings:
 
@@ -28,12 +31,14 @@ environment:
   - OCI_CONFIG_FILE=/root/.oci/config
   - OCI_CLI_PROFILE=DEFAULT
   - CITATION_BASE_URL=${CITATION_BASE_URL:-http://127.0.0.1:8008/}
+  - BM25_CACHE_DIR=/app/bm25_cache
 expose:
   - "8501"
 volumes:
   - ../../config_private.py:/app/config_private.py:ro
   - /Users/lsaetta/Progetti/work-iren/wallet:/app/wallet_atp:ro
   - ${HOME}/.oci:/root/.oci:ro
+  - ../../bm25_cache/ui:/app/bm25_cache
 ```
 
 Citation image server settings:
@@ -53,6 +58,7 @@ ports:
 environment:
   - MCP_HOST=0.0.0.0
   - MCP_PORT=8010
+  - BM25_CACHE_DIR=/app/bm25_cache
   - BM25_PREWARM_ENABLED=${BM25_PREWARM_ENABLED:-true}
   - BM25_PREWARM_COLLECTIONS=${BM25_PREWARM_COLLECTIONS:-}
   - BM25_TEXT_COLUMN=${BM25_TEXT_COLUMN:-TEXT}
@@ -61,6 +67,7 @@ volumes:
   - ../../config_private.py:/app/config_private.py:ro
   - /Users/lsaetta/Progetti/work-iren/wallet:/app/wallet_atp:ro
   - ${HOME}/.oci:/root/.oci:ro
+  - ../../bm25_cache/mcp:/app/bm25_cache
 ```
 
 Nginx reverse proxy settings:
@@ -125,6 +132,7 @@ Important checks:
 5. `/Users/lsaetta/Progetti/work-iren/pages` contains citation subfolders and `pageNNNN.png` files.
 6. `deployment/docker/nginx/.htpasswd` exists before starting Nginx.
 7. BM25 MCP container startup logs show successful prewarm (or explicit prewarm errors).
+8. `bm25_cache/ui` and `bm25_cache/mcp` directories exist in project root.
 
 ## Build
 

@@ -1,0 +1,360 @@
+{
+  "dataset": "/Users/lsaetta/Progetti/custom_rag_agent/eval_data/regression_sample.jsonl",
+  "model_id": "openai.gpt-oss-120b",
+  "collection_name": "COLL01",
+  "reranker_enabled": true,
+  "summary": {
+    "total_cases": 5,
+    "passed_cases": 5,
+    "pass_rate": 1.0,
+    "intent_ok_rate": 1.0,
+    "sources_ok_rate": 1.0,
+    "citations_ok_rate": 1.0,
+    "must_contain_ok_rate": 1.0,
+    "errors_count": 0
+  },
+  "results": [
+    {
+      "id": "glob_01",
+      "question": "Puoi definire la classificazione delle dispersioni di Gas",
+      "session_pdf_path": "",
+      "session_pdf_source": "",
+      "predicted_intent": "GLOBAL_KB",
+      "expected_intent": "GLOBAL_KB",
+      "intent_ok": true,
+      "observed_sources": [
+        "kb"
+      ],
+      "expected_sources": [
+        "kb"
+      ],
+      "sources_ok": true,
+      "citations_count": 9,
+      "citations_ok": true,
+      "expected_citations": [],
+      "observed_citations": [
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "9",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "13",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "16",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "12",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "1",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "4",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "5",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "17",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_UNI_TR_11860_Aprile2022.pdf",
+          "page": "15",
+          "retrieval_type": "bm25"
+        }
+      ],
+      "missing_expected_citations": [],
+      "must_contain_ok": true,
+      "node_error": null,
+      "pass": true
+    },
+    {
+      "id": "glob_02",
+      "question": "Puoi definire la classificazione delle dispersioni di Gas A1?",
+      "session_pdf_path": "",
+      "session_pdf_source": "",
+      "predicted_intent": "GLOBAL_KB",
+      "expected_intent": "GLOBAL_KB",
+      "intent_ok": true,
+      "observed_sources": [
+        "kb"
+      ],
+      "expected_sources": [
+        "kb"
+      ],
+      "sources_ok": true,
+      "citations_count": 10,
+      "citations_ok": true,
+      "expected_citations": [
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "9"
+        }
+      ],
+      "observed_citations": [
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "6",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "10",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "11",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "12",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "18",
+          "retrieval_type": "bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "14",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "16",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "17",
+          "retrieval_type": "bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "13",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "9",
+          "retrieval_type": "semantic+bm25"
+        }
+      ],
+      "missing_expected_citations": [],
+      "must_contain_ok": true,
+      "node_error": null,
+      "pass": true
+    },
+    {
+      "id": "sess_01",
+      "question": "Sintetizza il documento caricato in max 5 bullet points.",
+      "session_pdf_path": "/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "session_pdf_source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "predicted_intent": "SESSION_DOC",
+      "expected_intent": "SESSION_DOC",
+      "intent_ok": true,
+      "observed_sources": [
+        "session_pdf"
+      ],
+      "expected_sources": [
+        "session_pdf"
+      ],
+      "sources_ok": true,
+      "citations_count": 5,
+      "citations_ok": true,
+      "expected_citations": [],
+      "observed_citations": [
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "2",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "3",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "1",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "4",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "5",
+          "retrieval_type": "session_pdf"
+        }
+      ],
+      "missing_expected_citations": [],
+      "must_contain_ok": true,
+      "node_error": null,
+      "pass": true
+    },
+    {
+      "id": "hyb_01",
+      "question": "Analizza il documento caricato ed indica aree di miglioramento in base alla normativa esistente.",
+      "session_pdf_path": "/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "session_pdf_source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "predicted_intent": "HYBRID",
+      "expected_intent": "HYBRID",
+      "intent_ok": true,
+      "observed_sources": [
+        "kb",
+        "session_pdf"
+      ],
+      "expected_sources": [
+        "kb",
+        "session_pdf"
+      ],
+      "sources_ok": true,
+      "citations_count": 13,
+      "citations_ok": true,
+      "expected_citations": [],
+      "observed_citations": [
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "187",
+          "retrieval_type": "bm25"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "3",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "330",
+          "retrieval_type": "bm25"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "89",
+          "retrieval_type": "bm25"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "5",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "666",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "209",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "714",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "PRG_1_D.Lgs_31_marzo_2023_n.36.pdf",
+          "page": "203",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_011-LG-CIG-2020.pdf",
+          "page": "24",
+          "retrieval_type": "semantic"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "4",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "2",
+          "retrieval_type": "session_pdf"
+        },
+        {
+          "source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+          "page": "1",
+          "retrieval_type": "session_pdf"
+        }
+      ],
+      "missing_expected_citations": [],
+      "must_contain_ok": true,
+      "node_error": null,
+      "pass": true
+    },
+    {
+      "id": "glob_03",
+      "question": "Definisci le azioni immediate da compiere per una dispersione A1.",
+      "session_pdf_path": "/Users/lsaetta/Desktop/eurogasmet/contratti/contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "session_pdf_source": "contratto_di_fornitura_gas_tecnici_2021_25_controfirmato_def.pdf",
+      "predicted_intent": "GLOBAL_KB",
+      "expected_intent": "GLOBAL_KB",
+      "intent_ok": true,
+      "observed_sources": [
+        "kb"
+      ],
+      "expected_sources": [
+        "kb"
+      ],
+      "sources_ok": true,
+      "citations_count": 4,
+      "citations_ok": true,
+      "expected_citations": [
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "10"
+        }
+      ],
+      "observed_citations": [
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "10",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_010_LG_10_2022.pdf",
+          "page": "16",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "14",
+          "retrieval_type": "semantic+bm25"
+        },
+        {
+          "source": "PRG_1_07_LineeGuidaCIG_2020.pdf",
+          "page": "9",
+          "retrieval_type": "semantic+bm25"
+        }
+      ],
+      "missing_expected_citations": [],
+      "must_contain_ok": true,
+      "node_error": null,
+      "pass": true
+    }
+  ]
+}

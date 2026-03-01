@@ -41,6 +41,34 @@ class BM25OracleSearch:
         self.bm25 = None
         self.index_data()
 
+    @classmethod
+    def from_serialized_payload(cls, payload: dict) -> "BM25OracleSearch":
+        """
+        Recreate an engine from serialized data without DB access.
+        """
+        obj = cls.__new__(cls)
+        obj.table_name = payload["table_name"]
+        obj.text_column = payload["text_column"]
+        obj.batch_size = int(payload.get("batch_size", 40))
+        obj.docs = payload.get("docs", [])
+        obj.texts = payload.get("texts", [])
+        obj.tokenized_texts = payload.get("tokenized_texts", [])
+        obj.bm25 = BM25Okapi(obj.tokenized_texts) if obj.tokenized_texts else None
+        return obj
+
+    def to_serialized_payload(self) -> dict:
+        """
+        Return a serializable payload for cache persistence.
+        """
+        return {
+            "table_name": self.table_name,
+            "text_column": self.text_column,
+            "batch_size": self.batch_size,
+            "docs": self.docs,
+            "texts": self.texts,
+            "tokenized_texts": self.tokenized_texts,
+        }
+
     @staticmethod
     def _validate_identifier(identifier: str) -> str:
         """

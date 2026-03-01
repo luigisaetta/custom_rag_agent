@@ -39,6 +39,8 @@ class State(TypedDict):
 
     # the question reformulated using chat_history
     standalone_question: str = ""
+    # optional KB-focused query built for HYBRID path
+    kb_query: str = ""
     # routing intent chosen by classifier node
     search_intent: str = "GLOBAL_KB"
     # true when a session in-memory pdf vector store is available

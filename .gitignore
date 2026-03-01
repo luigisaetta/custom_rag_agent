@@ -17,3 +17,6 @@ deployment/docker/nginx/.htpasswd
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+
+# BM25 persisted cache artifacts
+bm25_cache/**/bm25_cache.pkl

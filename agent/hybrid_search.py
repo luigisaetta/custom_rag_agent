@@ -151,6 +151,7 @@ class HybridSearch(Runnable):
         intent = (input.get("search_intent") or "GLOBAL_KB").upper()
 
         standalone_question = input.get("standalone_question", "")
+        kb_query = input.get("kb_query") or standalone_question
         if not standalone_question:
             return {"retriever_docs": retriever_docs, "error": error}
 
@@ -163,7 +164,7 @@ class HybridSearch(Runnable):
         bm25_docs = []
         if app_config.ENABLE_HYBRID_SEARCH:
             try:
-                bm25_docs = self._bm25_docs(standalone_question, collection_name)
+                bm25_docs = self._bm25_docs(kb_query, collection_name)
                 merged_docs = self._merge_docs(retriever_docs, bm25_docs)
             except Exception as exc:
                 logger.warning(

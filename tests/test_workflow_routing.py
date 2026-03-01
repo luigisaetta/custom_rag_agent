@@ -62,6 +62,14 @@ class _FakeSearch(Runnable):
         return {"retriever_docs": docs, "error": input_state.get("error")}
 
 
+class _FakeHybridQueryBuilder(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        return {
+            "kb_query": f"kb::{input_state.get('standalone_question', '')}",
+            "error": input_state.get("error"),
+        }
+
+
 class _FakeSessionSearch(Runnable):
     def invoke(self, input_state, config=None, **kwargs):
         docs = [
@@ -129,6 +137,7 @@ def _build_workflow_with_mocks(monkeypatch):
     monkeypatch.setattr(rag_module, "ContentModerator", lambda: _FakeModerator())
     monkeypatch.setattr(rag_module, "QueryRewriter", lambda: _FakeQueryRewriter())
     monkeypatch.setattr(rag_module, "IntentClassifier", lambda: _FakeIntentClassifier())
+    monkeypatch.setattr(rag_module, "HybridQueryBuilder", lambda: _FakeHybridQueryBuilder())
     monkeypatch.setattr(rag_module, "SemanticSearch", lambda: _FakeSearch())
     monkeypatch.setattr(rag_module, "SessionVectorSearch", lambda: _FakeSessionSearch())
     monkeypatch.setattr(rag_module, "HybridSearch", lambda: _FakeHybridSearch())
@@ -163,6 +172,7 @@ def test_global_kb_route_without_session_pdf(monkeypatch):
 
     assert "Search" in steps
     assert "HybridSearch" in steps
+    assert "HybridQueryBuilder" not in steps
     assert "SessionSearch" not in steps
     assert by_step["IntentClassifier"]["search_intent"] == "GLOBAL_KB"
 
@@ -182,6 +192,7 @@ def test_session_doc_route_uses_only_session_search(monkeypatch):
 
     assert "SessionSearch" in steps
     assert "Search" not in steps
+    assert "HybridQueryBuilder" not in steps
     assert "HybridSearch" not in steps
     retrieval_types = {c["retrieval_type"] for c in by_step["Rerank"]["citations"]}
     assert retrieval_types == {"session_pdf"}
@@ -201,6 +212,7 @@ def test_hybrid_route_merges_db_and_session_provenance(monkeypatch):
     )
 
     assert "Search" in steps
+    assert "HybridQueryBuilder" in steps
     assert "HybridSearch" in steps
     assert "SessionSearch" not in steps
     retrieval_types = {c["retrieval_type"] for c in by_step["Rerank"]["citations"]}

@@ -31,6 +31,7 @@ from agent.agent_state import State
 from agent.content_moderation import ContentModerator
 from agent.query_rewriter import QueryRewriter
 from agent.intent_classifier import IntentClassifier
+from agent.hybrid_query_builder import HybridQueryBuilder
 from agent.vector_search import SemanticSearch
 from agent.session_vector_search import SessionVectorSearch
 from agent.hybrid_search import HybridSearch
@@ -50,8 +51,10 @@ def _route_after_intent(state: State) -> str:
     if intent == "SESSION_DOC":
         return "SessionSearch"
     if intent == "HYBRID":
-        logger.info("Intent HYBRID selected. Fallback to global pipeline for now.")
-        return "Search"
+        logger.info(
+            "Intent HYBRID selected. Building KB query from session evidence."
+        )
+        return "HybridQueryBuilder"
     return "Search"
 
 
@@ -69,20 +72,23 @@ def create_workflow():
     # step 2: classify retrieval intent
     intent_classifier = IntentClassifier()
     # step 3: do semantic search on global KB
+    hybrid_query_builder = HybridQueryBuilder()
+    # step 4: do semantic search on global KB
     semantic_search = SemanticSearch()
-    # step 4: semantic search on session in-memory PDF
+    # step 5: semantic search on session in-memory PDF
     session_search = SessionVectorSearch()
-    # step 5: hybrid search placeholder (feature-flagged)
+    # step 6: hybrid search placeholder (feature-flagged)
     hybrid_search = HybridSearch()
-    # step 6: filter and rerank, using a LLM
+    # step 7: filter and rerank, using a LLM
     reranker = Reranker()
-    # step 7: generate final answer
+    # step 8: generate final answer
     answer_generator = AnswerGenerator()
 
     # Add nodes
     workflow.add_node("Moderator", moderator)
     workflow.add_node("QueryRewrite", query_rewriter)
     workflow.add_node("IntentClassifier", intent_classifier)
+    workflow.add_node("HybridQueryBuilder", hybrid_query_builder)
     workflow.add_node("Search", semantic_search)
     workflow.add_node("SessionSearch", session_search)
     workflow.add_node("HybridSearch", hybrid_search)
@@ -102,8 +108,10 @@ def create_workflow():
         {
             "Search": "Search",
             "SessionSearch": "SessionSearch",
+            "HybridQueryBuilder": "HybridQueryBuilder",
         },
     )
+    workflow.add_edge("HybridQueryBuilder", "Search")
     workflow.add_edge("Search", "HybridSearch")
     workflow.add_edge("SessionSearch", "Rerank")
     workflow.add_edge("HybridSearch", "Rerank")

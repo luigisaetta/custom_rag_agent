@@ -102,11 +102,20 @@ TOP_K = 10
 ENABLE_HYBRID_SEARCH = True
 HYBRID_TOP_K = TOP_K
 # conservative number of in-memory session chunks added when intent is HYBRID
-HYBRID_SESSION_TOP_K = 3
+HYBRID_SESSION_TOP_K = 8
+# minimum number of session_pdf chunks preserved in HYBRID final context
+HYBRID_MIN_SESSION_DOCS = 6
+# number of session chunks used to build a KB-focused query in HYBRID
+HYBRID_QUERY_EXPANSION_TOP_K = 3
+# max chars from session chunks passed to query-expansion prompt
+HYBRID_QUERY_EXPANSION_MAX_CHARS = 3500
 
 # BM25 cache warms up from all the collections in this list
 COLLECTION_LIST = ["COLL01", "CONTRATTI"]
 DEFAULT_COLLECTION = "COLL01"
+# optional persistence path for serialized BM25 cache file
+# default points to a repository-local folder (can be overridden via env var)
+BM25_CACHE_DIR = os.getenv("BM25_CACHE_DIR", "bm25_cache")
 
 
 # history management (put -1 if you want to disable trimming)

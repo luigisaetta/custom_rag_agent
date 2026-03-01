@@ -2,7 +2,7 @@
 This repository contains a customizable **RAG agent** built with **LangGraph**, **OCI Generative AI**, and **Oracle 23AI Vector Search**.
 
 **Author**: L. Saetta  
-**Reviewed**: 2026-02-24
+**Reviewed**: 2026-03-01
 
 ![UI](images/ui_image.png)
 
@@ -24,8 +24,11 @@ Use this project as a reference implementation when you need:
 ├── agent/                  # LangGraph agent workflow + nodes
 │   ├── rag_agent.py
 │   ├── agent_state.py
+│   ├── intent_classifier.py
 │   ├── query_rewriter.py
 │   ├── vector_search.py
+│   ├── session_vector_search.py
+│   ├── hybrid_search.py
 │   ├── reranker.py
 │   ├── answer_generator.py
 │   ├── content_moderation.py
@@ -36,10 +39,14 @@ Use this project as a reference implementation when you need:
 │   ├── citation_utils.py
 │   ├── db_utils.py
 │   ├── rag_feedback.py
+│   ├── retry_utils.py
+│   ├── session_pdf_vlm.py
 │   ├── transport.py
 │   ├── chunk_index_utils.py
 │   ├── bm25_search.py
 │   └── utils.py
+├── docs/
+│   └── README.md           # Uploaded PDF flow and hybrid retrieval notes
 ├── assistant_ui_langgraph.py
 ├── rag_agent_api.py
 ├── pages/
@@ -103,6 +110,7 @@ pip install -r requirements.txt
    - `TOP_K`
    - `COLLECTION_LIST`
    - `DEFAULT_COLLECTION`
+   - `BM25_CACHE_DIR` (directory for serialized BM25 cache file; default `bm25_cache`)
 4. Citation links:
    - `CITATION_BASE_URL` (env-overridable, default `http://127.0.0.1:8008/`)
 
@@ -142,7 +150,33 @@ Example:
 For complete Docker deployment instructions (services, mounts, ports, health checks), see:
 - [deployment/docker/README.md](./deployment/docker/README.md)
 
+### 7) BM25 cache persistence directories
+Repository-local directories are used for persisted BM25 cache files:
+- `bm25_cache/ui`
+- `bm25_cache/mcp`
+
+In Docker Compose these are mounted respectively to `/app/bm25_cache` in:
+- `custom-rag-agent-ui`
+- `bm25_mcp_server`
+
 ## License
 This project is licensed under the **MIT** License.
 
 See [LICENSE](./LICENSE)
+
+## New Features (2026-03)
+- Added an intent-classification branch in the graph (`GLOBAL_KB`, `SESSION_DOC`, `HYBRID`) implemented as a dedicated Runnable node.
+- Added a dedicated intent model setting in `config.py` (`INTENT_MODEL_ID`).
+- Added session-only retrieval node (`SessionVectorSearch`) for in-memory uploaded PDF search.
+- Completed HYBRID retrieval behavior with a safe additive strategy:
+  - merge DB candidates (semantic + BM25) with a conservative number of session-PDF chunks;
+  - deduplicate merged chunks before reranking;
+  - configurable session contribution via `HYBRID_SESSION_TOP_K`.
+- Improved references for uploaded PDFs:
+  - metadata now uses the real uploaded filename (not temporary file name);
+  - session-PDF references in UI show source/page without link.
+- Added/updated tests for:
+  - intent classifier behavior;
+  - hybrid merge behavior;
+  - workflow routing (GLOBAL_KB / SESSION_DOC / HYBRID) with pytest mocks.
+- Added consolidated docs for uploaded PDF handling and hybrid retrieval in `docs/README.md`.

@@ -73,9 +73,10 @@ class SemanticSearch(Runnable):
         error = None
 
         standalone_question = input["standalone_question"]
+        search_query = input.get("kb_query") or standalone_question
 
         if DEBUG:
-            logger.info("Search question: %s", standalone_question)
+            logger.info("Search question: %s", search_query)
 
         try:
             embed_model = get_embedding_model(embed_model_type)
@@ -90,7 +91,7 @@ class SemanticSearch(Runnable):
                 )
 
                 relevant_docs = v_store.similarity_search(
-                    query=standalone_question, k=TOP_K
+                    query=search_query, k=TOP_K
                 )
 
             # annotate retrieval origin to support hybrid observability in references

@@ -80,11 +80,15 @@ Must review and configure:
    - Citation server: `"${CITATION_SERVER_BIND_IP:-0.0.0.0}:${CITATION_SERVER_PORT:-8008}:8008"`
    - BM25 MCP server: `"${BM25_MCP_BIND_IP:-0.0.0.0}:${BM25_MCP_PORT:-8010}:8010"`
 7. BM25 MCP environment values:
+   - `BM25_CACHE_DIR` (container path for persisted cache, e.g. `/app/bm25_cache`)
    - `BM25_PREWARM_ENABLED` (default `true`)
    - `BM25_PREWARM_COLLECTIONS` (CSV, default from `COLLECTION_LIST`)
    - `BM25_TEXT_COLUMN` (default `TEXT`)
    - `BM25_BATCH_SIZE` (default `40`)
-8. BM25 MCP build artifacts:
+9. BM25 cache mounts:
+   - `../../bm25_cache/ui:/app/bm25_cache` for `custom-rag-agent-ui`
+   - `../../bm25_cache/mcp:/app/bm25_cache` for `bm25_mcp_server`
+10. BM25 MCP build artifacts:
    - `deployment/docker/Dockerfile.mcp`
    - `deployment/docker/requirements.mcp.txt`
 
@@ -98,6 +102,7 @@ Optional host env variables:
 7. `BM25_PREWARM_COLLECTIONS`
 8. `BM25_TEXT_COLUMN`
 9. `BM25_BATCH_SIZE`
+10. `BM25_CACHE_DIR`
 
 ### 3) OCI config files on host (`${HOME}/.oci`)
 
@@ -151,7 +156,9 @@ Container runtime paths expected by app:
 2. `/app/wallet_atp` from host wallet directory
 3. `/root/.oci` from host `${HOME}/.oci`
 4. `/data/citations` from host citation pages directory
-5. BM25 MCP server uses the same `/app/config_private.py`, `/app/wallet_atp`, and `/root/.oci` mounts
+5. `/app/bm25_cache` from host `../../bm25_cache/ui` (`custom-rag-agent-ui`)
+6. `/app/bm25_cache` from host `../../bm25_cache/mcp` (`bm25_mcp_server`)
+7. BM25 MCP server uses the same `/app/config_private.py`, `/app/wallet_atp`, and `/root/.oci` mounts
 
 ## Pre-Start Validation
 
@@ -163,18 +170,20 @@ test -f "$HOME/.oci/config" && echo "OK oci config"
 test -f deployment/docker/nginx/.htpasswd && echo "OK .htpasswd"
 test -f deployment/docker/Dockerfile.mcp && echo "OK Dockerfile.mcp"
 test -f deployment/docker/requirements.mcp.txt && echo "OK requirements.mcp.txt"
+test -d bm25_cache/ui && echo "OK bm25_cache/ui"
+test -d bm25_cache/mcp && echo "OK bm25_cache/mcp"
 ```
 
 Then verify host mounts in compose:
 ```bash
 # Linux example paths
-rg -n "/home/ubuntu|wallet_atp|/data/citations|config_private.py|\\.oci" deployment/docker/docker-compose.yml
+rg -n "/home/ubuntu|wallet_atp|/data/citations|config_private.py|\\.oci|bm25_cache" deployment/docker/docker-compose.yml
 
 # macOS example paths
-rg -n "/Users/lsaetta|wallet_atp|/data/citations|config_private.py|\\.oci" deployment/docker/docker-compose.yml
+rg -n "/Users/lsaetta|wallet_atp|/data/citations|config_private.py|\\.oci|bm25_cache" deployment/docker/docker-compose.yml
 
 # Fallback (works without ripgrep on Linux and macOS)
-grep -nE "/home/ubuntu|/Users/|wallet_atp|/data/citations|config_private.py|\\.oci" deployment/docker/docker-compose.yml
+grep -nE "/home/ubuntu|/Users/|wallet_atp|/data/citations|config_private.py|\\.oci|bm25_cache" deployment/docker/docker-compose.yml
 ```
 
 If `rg` is not installed:
@@ -208,3 +217,5 @@ docker compose -f deployment/docker/docker-compose.yml logs -f bm25_mcp_server
    - Symptom: citation links return 404.
 5. Wrong `CITATION_BASE_URL`
    - Symptom: generated citation links do not resolve from browser.
+6. Missing BM25 cache directories (`bm25_cache/ui`, `bm25_cache/mcp`)
+   - Symptom: cache persistence is not retained as expected.

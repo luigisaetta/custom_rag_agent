@@ -40,7 +40,14 @@ from agent.prompts import (
 from core.oci_models import get_llm
 from core.retry_utils import run_with_retry
 from core.utils import get_console_logger, extract_json_from_text
-from config import DEBUG, AGENT_NAME, TOP_K, RERANKER_MODEL_ID, LLM_MAX_RETRIES
+from config import (
+    DEBUG,
+    AGENT_NAME,
+    TOP_K,
+    RERANKER_MODEL_ID,
+    LLM_MAX_RETRIES,
+    HYBRID_MIN_SESSION_DOCS,
+)
 
 logger = get_console_logger()
 
@@ -54,6 +61,58 @@ class Reranker(Runnable):
         """
         Init
         """
+
+    @staticmethod
+    def _is_session_pdf_doc(doc: dict) -> bool:
+        retrieval_type = ((doc.get("metadata") or {}).get("retrieval_type", "") or "").lower()
+        return retrieval_type.startswith("session_pdf")
+
+    @staticmethod
+    def _doc_uid(doc: dict) -> tuple:
+        metadata = doc.get("metadata") or {}
+        return (
+            doc.get("page_content", ""),
+            metadata.get("source", ""),
+            metadata.get("page_label", ""),
+            metadata.get("retrieval_type", ""),
+        )
+
+    def _enforce_hybrid_source_floors(self, reranked_docs: list, retriever_docs: list) -> list:
+        """
+        Keep KB quota behavior unchanged (TOP_K) and ensure at least
+        HYBRID_MIN_SESSION_DOCS session chunks are present in final context.
+        """
+        min_session = max(0, int(HYBRID_MIN_SESSION_DOCS))
+        if min_session == 0:
+            return reranked_docs
+
+        session_count = sum(1 for d in reranked_docs if self._is_session_pdf_doc(d))
+        if session_count >= min_session:
+            return reranked_docs
+
+        out = list(reranked_docs)
+        seen = {self._doc_uid(d) for d in out}
+        needed = min_session - session_count
+
+        for doc in retriever_docs:
+            if not self._is_session_pdf_doc(doc):
+                continue
+            uid = self._doc_uid(doc)
+            if uid in seen:
+                continue
+            out.append(doc)
+            seen.add(uid)
+            needed -= 1
+            if needed <= 0:
+                break
+
+        logger.info(
+            "Reranker HYBRID floor applied: min_session=%d final_session=%d final_docs=%d",
+            min_session,
+            sum(1 for d in out if self._is_session_pdf_doc(d)),
+            len(out),
+        )
+        return out
 
     def generate_refs(self, docs: list):
         """
@@ -163,6 +222,13 @@ class Reranker(Runnable):
             error = str(e)
             # Fallback to original documents
             reranked_docs = retriever_docs
+
+        intent = (input.get("search_intent") or "GLOBAL_KB").upper()
+        if intent == "HYBRID" and reranked_docs:
+            reranked_docs = self._enforce_hybrid_source_floors(
+                reranked_docs=reranked_docs,
+                retriever_docs=retriever_docs,
+            )
 
         # Get reference citations
         citations = self.generate_refs(reranked_docs)
