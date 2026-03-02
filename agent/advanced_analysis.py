@@ -21,6 +21,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
 import oracledb
 import time
+from py_zipkin.zipkin import zipkin_span
 
 from agent.advanced_analysis_state import AdvancedAnalysisState
 from agent.prompts import (
@@ -31,6 +32,7 @@ from agent.prompts import (
 from core.oci_models import get_llm, get_embedding_model, get_oracle_vs
 from core.utils import get_console_logger, extract_json_from_text, docs_serializable
 from config import (
+    AGENT_NAME,
     ADVANCED_ANALYSIS_MAX_ACTIONS,
     ADVANCED_ANALYSIS_KB_TOP_K,
     ADVANCED_ANALYSIS_STEP_MAX_WORDS,
@@ -40,6 +42,21 @@ from config import (
 from config_private import CONNECT_ARGS
 
 logger = get_console_logger()
+
+
+def _emit_progress(configurable: dict, percent: int, message: str) -> None:
+    """
+    Emit progress updates when a UI callback is provided.
+    Callback signature: callback(percent: int, message: str)
+    """
+    callback = configurable.get("progress_callback")
+    if callback is None:
+        return
+    try:
+        callback(max(0, min(100, int(percent))), message)
+    except Exception:
+        # Progress reporting must never break execution.
+        return
 
 
 class AdvancedPlanner(Runnable):
@@ -100,10 +117,12 @@ class AdvancedPlanner(Runnable):
             )
         return out
 
+    @zipkin_span(service_name=AGENT_NAME, span_name="advanced_planner")
     def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
         error = input.get("error")
         user_request = input.get("user_request", "")
         configurable = (config or {}).get("configurable", {})
+        _emit_progress(configurable, 5, "Planner started")
         model_id = configurable.get("model_id")
         max_actions = int(
             configurable.get("advanced_analysis_max_actions", ADVANCED_ANALYSIS_MAX_ACTIONS)
@@ -114,6 +133,7 @@ class AdvancedPlanner(Runnable):
         session_docs = list(configurable.get("session_pdf_docs", []))
         if not session_docs:
             logger.warning("AdvancedPlanner: no session_pdf_docs available.")
+            _emit_progress(configurable, 20, "Planner completed (no session docs)")
             return {"advanced_plan": [], "error": error}
 
         try:
@@ -134,9 +154,11 @@ class AdvancedPlanner(Runnable):
             advanced_plan = self._normalize_plan(raw_plan, max_actions=max_actions)
 
             logger.info("AdvancedPlanner final plan: %s", advanced_plan)
+            _emit_progress(configurable, 20, f"Planner completed ({len(advanced_plan)} actions)")
             return {"advanced_plan": advanced_plan, "error": error}
         except Exception as exc:
             logger.exception("AdvancedPlanner failed: %s", exc)
+            _emit_progress(configurable, 20, "Planner failed")
             return {"advanced_plan": [], "error": error}
 
 
@@ -282,11 +304,13 @@ class AdvancedAnalysisRunner(Runnable):
             seen.add(content)
         return merged
 
+    @zipkin_span(service_name=AGENT_NAME, span_name="advanced_analysis_execution")
     def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
         error = input.get("error")
         plan = input.get("advanced_plan", [])
         user_request = input.get("user_request", "")
         configurable = (config or {}).get("configurable", {})
+        _emit_progress(configurable, 25, "Execution started")
         session_docs = list(configurable.get("session_pdf_docs", []))
         model_id = configurable.get("model_id")
         collection_name = configurable.get("collection_name", "UNKNOWN")
@@ -305,6 +329,7 @@ class AdvancedAnalysisRunner(Runnable):
         )
 
         if not plan:
+            _emit_progress(configurable, 85, "Execution skipped (empty plan)")
             return {
                 "final_answer": "Advanced analysis could not run because no execution plan was generated.",
                 "citations": [],
@@ -397,11 +422,19 @@ class AdvancedAnalysisRunner(Runnable):
                 kb_needed,
                 len(kb_docs),
             )
+            total_steps = max(1, len(plan))
+            step_progress = 25 + int((step_no / total_steps) * 60)
+            _emit_progress(
+                configurable,
+                step_progress,
+                f"Executed step {step_no}/{total_steps}",
+            )
 
             step_outputs.append(f"### Step {step_no} - {section}\n{step_text}")
             all_citations.extend(self._build_citations(selected_chunks, kb_docs))
 
         logger.info("AdvancedAnalysis steps generated. steps=%d", len(step_outputs))
+        _emit_progress(configurable, 85, "Execution completed")
         return {
             "advanced_step_outputs": step_outputs,
             "citations": all_citations,
@@ -416,12 +449,14 @@ class AdvancedFinalSynthesis(Runnable):
     - final synthesis section
     """
 
+    @zipkin_span(service_name=AGENT_NAME, span_name="advanced_final_synthesis")
     def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
         error = input.get("error")
         user_request = input.get("user_request", "")
         step_outputs = list(input.get("advanced_step_outputs", []))
         citations = list(input.get("citations", []))
         configurable = (config or {}).get("configurable", {})
+        _emit_progress(configurable, 90, "Final synthesis started")
         model_id = configurable.get("model_id")
         step_max_words = int(
             configurable.get("advanced_analysis_step_max_words", ADVANCED_ANALYSIS_STEP_MAX_WORDS)
@@ -429,6 +464,7 @@ class AdvancedFinalSynthesis(Runnable):
         synthesis_max_words = max(180, int(step_max_words * 0.8))
 
         if not step_outputs:
+            _emit_progress(configurable, 100, "Final synthesis completed (no steps)")
             return {
                 "final_answer": "Advanced analysis did not produce step outputs to synthesize.",
                 "citations": citations,
@@ -457,4 +493,5 @@ class AdvancedFinalSynthesis(Runnable):
             + synthesis_text
         )
         logger.info("AdvancedFinalSynthesis generated.")
+        _emit_progress(configurable, 100, "Final synthesis completed")
         return {"final_answer": final_answer, "citations": citations, "error": error}

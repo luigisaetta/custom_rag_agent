@@ -175,6 +175,13 @@ See [LICENSE](./LICENSE)
 - Added session-only retrieval node (`SessionVectorSearch`) for in-memory uploaded PDF search.
 - Refactored the `HYBRID` branch orchestration into a dedicated LangGraph subgraph (`HybridFlow`) that reuses existing nodes:
   - `HybridQueryBuilder -> Search -> HybridSearch -> HybridSessionSearch -> HybridDocsMerge`
+- Added an optional **Advanced Analysis** path for complex HYBRID cases:
+  - activation conditions: session PDF available + intent `HYBRID` + UI checkbox enabled;
+  - routed to dedicated subgraph `AdvancedAnalysisFlow`;
+  - subgraph steps: `Planner -> AdvancedAnalysis -> FinalSynthesis`;
+  - planner builds a bounded action plan (`ADVANCED_ANALYSIS_MAX_ACTIONS`) using all session PDF chunks;
+  - execution runs step-by-step with PDF chunk pointers and optional per-step KB search;
+  - final output includes all step outputs followed by a final synthesis section.
 - Completed HYBRID retrieval behavior with a safe additive strategy:
   - merge DB candidates (semantic + BM25) with a conservative number of session-PDF chunks;
   - deduplicate merged chunks before reranking;

@@ -377,6 +377,19 @@ if question := st.chat_input("Hello, how can I help you?"):
                     encoding=Encoding.V2_JSON,
                     sample_rate=100,
                 ) as span:
+                    advanced_status_slot = None
+                    advanced_progress = None
+                    progress_callback = None
+                    if st.session_state.enable_advanced_analysis:
+                        advanced_status_slot = st.sidebar.empty()
+                        advanced_progress = st.sidebar.progress(0)
+
+                        def _on_advanced_progress(percent: int, message: str):
+                            advanced_progress.progress(max(0, min(100, int(percent))))
+                            advanced_status_slot.info(f"Advanced Analysis: {message}")
+
+                        progress_callback = _on_advanced_progress
+
                     # set the agent config
                     agent_config = {
                         "configurable": {
@@ -394,6 +407,7 @@ if question := st.chat_input("Hello, how can I help you?"):
                             "advanced_analysis_max_actions": config.ADVANCED_ANALYSIS_MAX_ACTIONS,
                             "advanced_analysis_kb_top_k": config.ADVANCED_ANALYSIS_KB_TOP_K,
                             "advanced_analysis_step_max_words": config.ADVANCED_ANALYSIS_STEP_MAX_WORDS,
+                            "progress_callback": progress_callback,
                         }
                     }
 
@@ -450,12 +464,24 @@ if question := st.chat_input("Hello, how can I help you?"):
                     elapsed_time = round((time.time() - time_start), 1)
                     logger.info("Elapsed time: %s sec.", elapsed_time)
                     logger.info("")
+                    if (
+                        st.session_state.enable_advanced_analysis
+                        and advanced_progress is not None
+                        and advanced_status_slot is not None
+                    ):
+                        advanced_progress.progress(100)
+                        advanced_status_slot.success("Advanced Analysis: completed")
 
                     if config.ENABLE_USER_FEEDBACK:
                         st.session_state.get_feedback = True
 
                 else:
                     st.error(ERROR)
+                    if (
+                        st.session_state.enable_advanced_analysis
+                        and advanced_status_slot is not None
+                    ):
+                        advanced_status_slot.warning("Advanced Analysis: interrupted due to error")
 
                 # Add user/assistant message to chat history
                 add_to_chat_history(HumanMessage(content=question))
