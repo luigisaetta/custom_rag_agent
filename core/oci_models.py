@@ -36,7 +36,8 @@ from core.utils import get_console_logger
 from config import (
     DEBUG,
     AUTH,
-    SERVICE_ENDPOINT,
+    LLM_SERVICE_ENDPOINT,
+    EMBED_SERVICE_ENDPOINT,
     COMPARTMENT_ID,
     # used only for defaults
     LLM_MODEL_ID,
@@ -83,7 +84,7 @@ def get_llm(model_id=LLM_MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_TOKEN
     llm = ChatOCIGenAI(
         auth_type=AUTH,
         model_id=model_id,
-        service_endpoint=SERVICE_ENDPOINT,
+        service_endpoint=LLM_SERVICE_ENDPOINT,
         compartment_id=COMPARTMENT_ID,
         is_stream=True,
         model_kwargs=_model_kwargs,
@@ -109,7 +110,7 @@ def get_embedding_model(model_type="OCI"):
         embed_model = OCIGenAIEmbeddings(
             auth_type=AUTH,
             model_id=EMBED_MODEL_ID,
-            service_endpoint=SERVICE_ENDPOINT,
+            service_endpoint=EMBED_SERVICE_ENDPOINT,
             compartment_id=COMPARTMENT_ID,
         )
     elif model_type == "NVIDIA":

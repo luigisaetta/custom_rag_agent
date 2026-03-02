@@ -204,7 +204,8 @@ if st.sidebar.button("Clear Chat History"):
 
 st.sidebar.header("Options")
 
-st.sidebar.text_input(label="Region", value=config.REGION, disabled=True)
+st.sidebar.text_input(label="LLM Region", value=config.LLM_REGION, disabled=True)
+st.sidebar.text_input(label="Embed Region", value=config.EMBED_REGION, disabled=True)
 
 # the collection used for semantic search
 st.session_state.collection_name = st.sidebar.selectbox(

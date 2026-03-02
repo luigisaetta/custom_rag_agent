@@ -117,6 +117,37 @@ def _missing_expected_citations(
     return missing
 
 
+def _citation_recall(
+    expected_citations: List[Dict[str, Any]], citations: List[Dict[str, Any]]
+) -> float:
+    """
+    Compute per-case citation recall:
+    matched_expected / total_expected
+    """
+    total_expected = len(expected_citations)
+    if total_expected == 0:
+        return 0.0
+
+    matched = 0
+    used_indices = set()
+    for exp in expected_citations:
+        exp_source = str(exp.get("source", "")).strip()
+        exp_page = str(exp.get("page", "")).strip()
+        for idx, got in enumerate(citations):
+            if idx in used_indices:
+                continue
+            got_source = str(got.get("source", "")).strip()
+            got_page = str(got.get("page", "")).strip()
+            source_ok = (not exp_source) or (got_source == exp_source)
+            page_ok = (not exp_page) or (got_page == exp_page)
+            if source_ok and page_ok:
+                matched += 1
+                used_indices.add(idx)
+                break
+
+    return round(matched / total_expected, 3)
+
+
 def _must_contain_ok(must_contain: List[str], answer_text: str) -> bool:
     text = answer_text.lower()
     return all(str(term).lower() in text for term in must_contain)
@@ -197,6 +228,7 @@ def _run_case(
 
     predicted_intent: str = ""
     citations: List[Dict[str, Any]] = []
+    reranker_docs_count = 0
     answer_text = ""
     node_error: Optional[str] = None
 
@@ -210,6 +242,7 @@ def _run_case(
                 predicted_intent = str(payload.get("search_intent", ""))
             elif node_name == "Rerank":
                 citations = list(payload.get("citations", []))
+                reranker_docs_count = len(payload.get("reranker_docs", []))
             elif node_name == "Answer":
                 answer_text = _collect_answer_text(payload.get("final_answer"))
 
@@ -231,6 +264,9 @@ def _run_case(
         _missing_expected_citations(expected_citations, citations)
         if expected_citations
         else []
+    )
+    citations_recall = (
+        _citation_recall(expected_citations, citations) if expected_citations else None
     )
 
     if verbose and not citations_ok:
@@ -254,10 +290,12 @@ def _run_case(
         "expected_sources": sorted(expected_sources),
         "sources_ok": sources_ok,
         "citations_count": len(citations),
+        "reranker_docs_count": reranker_docs_count,
         "citations_ok": citations_ok,
         "expected_citations": expected_citations,
         "observed_citations": citations,
         "missing_expected_citations": missing_expected_citations,
+        "citations_recall": citations_recall,
         "must_contain_ok": must_contain_ok,
         "node_error": node_error,
         "pass": all(
@@ -273,6 +311,45 @@ def _score(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     def _ratio(key: str) -> float:
         return round(sum(1 for r in results if r[key]) / total, 3) if total else 0.0
 
+    # Recall over expected citations:
+    # - macro: average per-case recall where expected citations exist
+    # - micro: total matched expected / total expected across all cases
+    recall_cases = [r for r in results if r.get("expected_citations")]
+    macro_recall = (
+        round(
+            sum(float(r.get("citations_recall", 0.0)) for r in recall_cases)
+            / len(recall_cases),
+            3,
+        )
+        if recall_cases
+        else None
+    )
+    total_expected = 0
+    total_missing = 0
+    for r in recall_cases:
+        expected_len = len(r.get("expected_citations", []))
+        missing_len = len(r.get("missing_expected_citations", []))
+        total_expected += expected_len
+        total_missing += missing_len
+    micro_recall = (
+        round((total_expected - total_missing) / total_expected, 3)
+        if total_expected
+        else None
+    )
+
+    reranker_counts = [
+        int(r.get("reranker_docs_count", 0))
+        for r in results
+        if isinstance(r.get("reranker_docs_count", 0), int)
+    ]
+    reranker_docs_avg = (
+        round(sum(reranker_counts) / len(reranker_counts), 3)
+        if reranker_counts
+        else 0.0
+    )
+    reranker_docs_min = min(reranker_counts) if reranker_counts else 0
+    reranker_docs_max = max(reranker_counts) if reranker_counts else 0
+
     return {
         "total_cases": total,
         "passed_cases": passed,
@@ -280,6 +357,12 @@ def _score(results: List[Dict[str, Any]]) -> Dict[str, Any]:
         "intent_ok_rate": _ratio("intent_ok"),
         "sources_ok_rate": _ratio("sources_ok"),
         "citations_ok_rate": _ratio("citations_ok"),
+        "citations_recall_avg": macro_recall,
+        "citations_recall_micro": micro_recall,
+        "citations_recall_cases": len(recall_cases),
+        "reranker_docs_avg": reranker_docs_avg,
+        "reranker_docs_min": reranker_docs_min,
+        "reranker_docs_max": reranker_docs_max,
         "must_contain_ok_rate": _ratio("must_contain_ok"),
         "errors_count": sum(1 for r in results if r["node_error"]),
     }
@@ -352,6 +435,7 @@ def main() -> None:
                 "sources_ok": False,
                 "citations_ok": False,
                 "must_contain_ok": False,
+                "reranker_docs_count": 0,
             }
         results.append(result)
 

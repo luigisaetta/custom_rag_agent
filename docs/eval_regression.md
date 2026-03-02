@@ -67,8 +67,12 @@ The runner writes a JSON report (default: `eval_data/regression_results.json`) w
   - `intent_ok_rate`
   - `sources_ok_rate`
   - `citations_ok_rate`
-  - `must_contain_ok_rate`
-  - `errors_count`
+  - `citations_recall_avg` (macro average on cases with `expected_citations`)
+  - `citations_recall_micro` (global matched/expected over all expected citations)
+  - `citations_recall_cases` (number of cases contributing to recall)
+  - `reranker_docs_avg` / `reranker_docs_min` / `reranker_docs_max`
+- `must_contain_ok_rate`
+- `errors_count`
 - per-case results (including `predicted_intent`, `observed_sources`, `node_error`, `pass`)
 
 ## Notes

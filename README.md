@@ -95,9 +95,11 @@ pip install -r requirements.txt
 
 ### 2) Public configuration (`config.py`)
 `config.py` contains shared runtime settings:
-1. OCI region and endpoint:
-   - `REGION`
-   - `SERVICE_ENDPOINT`
+1. OCI regions and endpoints:
+   - `LLM_REGION`
+   - `EMBED_REGION`
+   - `LLM_SERVICE_ENDPOINT`
+   - `EMBED_SERVICE_ENDPOINT`
 2. Model settings:
    - `LLM_MODEL_ID`
    - `VLM_MODEL_ID` (used for in-session scanned PDF OCR on main UI page)

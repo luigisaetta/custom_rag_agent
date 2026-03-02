@@ -67,16 +67,25 @@ SESSION_PDF_MAX_PAGES = 30
 
 
 # OCI general
-# REGION = "eu-frankfurt-1"
-REGION = "us-chicago-1"
+# Separate OCI regions for LLM and embeddings.
+# Requested setup:
+# - LLM in Frankfurt
+# - Embeddings in Chicago
+LLM_REGION = "eu-frankfurt-1"
+EMBED_REGION = "us-chicago-1"
+# Backward-compatible alias used by some UI/read-only references.
+REGION = LLM_REGION
 COMPARTMENT_ID = "ocid1.compartment.oc1..aaaaaaaaushuwb2evpuf7rcpl4r7ugmqoe7ekmaiik3ra3m7gec3d234eknq"
-SERVICE_ENDPOINT = f"https://inference.generativeai.{REGION}.oci.oraclecloud.com"
+LLM_SERVICE_ENDPOINT = f"https://inference.generativeai.{LLM_REGION}.oci.oraclecloud.com"
+EMBED_SERVICE_ENDPOINT = f"https://inference.generativeai.{EMBED_REGION}.oci.oraclecloud.com"
+# Backward-compatible alias for legacy imports.
+SERVICE_ENDPOINT = LLM_SERVICE_ENDPOINT
 
 # answer language (fixed, no UI override)
 # allowed values: "same as the question", "en", "fr", "it", "es"
 MAIN_LANGUAGE = "same as the question"
 
-if REGION == "us-chicago-1":
+if LLM_REGION == "us-chicago-1":
     MODEL_LIST = [
         "openai.gpt-oss-120b",
         "openai.gpt-5.2",
