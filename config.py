@@ -119,6 +119,13 @@ HYBRID_QUERY_EXPANSION_TOP_K = 3
 # max chars from session chunks passed to query-expansion prompt
 HYBRID_QUERY_EXPANSION_MAX_CHARS = 3500
 
+# advanced analysis planner: max number of actions (retrievals or generations) 
+# that the planner can suggest to the agent when the user request is complex and requires multiple steps of reasoning
+ADVANCED_ANALYSIS_MAX_ACTIONS = 5
+# advanced analysis execution settings
+ADVANCED_ANALYSIS_KB_TOP_K = 6
+ADVANCED_ANALYSIS_STEP_MAX_WORDS = 450
+
 # BM25 cache warms up from all the collections in this list
 COLLECTION_LIST = ["COLL01", "CONTRATTI"]
 DEFAULT_COLLECTION = "COLL01"

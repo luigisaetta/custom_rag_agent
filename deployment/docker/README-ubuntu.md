@@ -46,6 +46,10 @@ cp config_private_template.py config_private.py
 
 Then edit `config_private.py` with your DB credentials and DSN.
 
+Also verify `config.py` public runtime settings:
+1. `LLM_REGION` / `LLM_SERVICE_ENDPOINT`
+2. `EMBED_REGION` / `EMBED_SERVICE_ENDPOINT`
+
 ## 3) Update host paths in compose for Ubuntu
 
 The current compose file contains host paths from macOS.  

@@ -161,3 +161,103 @@ Standalone question:
 Uploaded document excerpts:
 {session_snippets}
 """
+
+
+ADVANCED_ANALYSIS_PLANNER_TEMPLATE = """
+You are an expert planner for advanced document analysis.
+
+You receive:
+- a user request
+- all chunks extracted from an uploaded PDF in session
+- a maximum number of actions
+
+Your task:
+- build a concise execution plan as ordered actions.
+- each action must focus on one section/part of the document.
+- for each action decide whether a KB search is required to complement that section.
+- if KB search is needed, provide a compact KB query.
+
+Output rules:
+- return ONLY valid JSON, no extra text.
+- use this schema exactly:
+{{
+  "plan": [
+    {{
+      "step": 1,
+      "section": "string",
+      "chunk_numbers": [1, 2],
+      "objective": "string",
+      "kb_search_needed": true,
+      "kb_query": "string"
+    }}
+  ]
+}}
+- number of actions must be between 1 and {max_actions}.
+- each action must include at least one chunk number in `chunk_numbers`.
+- chunk numbers must refer to the indexed chunks provided in input.
+- if kb_search_needed is false, kb_query must be an empty string.
+
+User request:
+{user_request}
+
+Session PDF chunks (full set):
+{session_chunks}
+"""
+
+
+ADVANCED_ANALYSIS_STEP_TEMPLATE = """
+You are executing one step of an advanced analysis plan.
+
+Write a concise, evidence-based result for this step using:
+- selected chunks from the uploaded PDF
+- optional knowledge-base excerpts
+
+Constraints:
+- answer in the same language as the user request.
+- use only the provided evidence.
+- keep the output concise (maximum {max_words} words).
+- include practical conclusions for this step.
+- if evidence is insufficient, say what is missing.
+
+User request:
+{user_request}
+
+Plan step:
+- Step: {step}
+- Section: {section}
+- Objective: {objective}
+- KB search needed: {kb_search_needed}
+- KB query: {kb_query}
+
+PDF evidence (selected chunks):
+{pdf_context}
+
+KB evidence (retrieved docs):
+{kb_context}
+"""
+
+
+ADVANCED_ANALYSIS_SYNTHESIS_TEMPLATE = """
+You are a senior analyst writing the final synthesis of a multi-step analysis.
+
+Given:
+- the original user request
+- the detailed outputs of each executed step
+
+Write a concise final synthesis section that:
+1. integrates the key findings,
+2. highlights cross-step consistency or conflicts,
+3. states clear final conclusions,
+4. lists any critical missing evidence.
+
+Constraints:
+- keep the synthesis under {max_words} words.
+- use the same language as the user request.
+- do not invent facts outside step outputs.
+
+User request:
+{user_request}
+
+Step outputs:
+{step_outputs}
+"""

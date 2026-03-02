@@ -169,7 +169,12 @@ See [LICENSE](./LICENSE)
 ## New Features (2026-03)
 - Added an intent-classification branch in the graph (`GLOBAL_KB`, `SESSION_DOC`, `HYBRID`) implemented as a dedicated Runnable node.
 - Added a dedicated intent model setting in `config.py` (`INTENT_MODEL_ID`).
+- Split OCI runtime regions by workload:
+  - `LLM_REGION` / `LLM_SERVICE_ENDPOINT`
+  - `EMBED_REGION` / `EMBED_SERVICE_ENDPOINT`
 - Added session-only retrieval node (`SessionVectorSearch`) for in-memory uploaded PDF search.
+- Refactored the `HYBRID` branch orchestration into a dedicated LangGraph subgraph (`HybridFlow`) that reuses existing nodes:
+  - `HybridQueryBuilder -> Search -> HybridSearch -> HybridSessionSearch -> HybridDocsMerge`
 - Completed HYBRID retrieval behavior with a safe additive strategy:
   - merge DB candidates (semantic + BM25) with a conservative number of session-PDF chunks;
   - deduplicate merged chunks before reranking;

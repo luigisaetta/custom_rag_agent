@@ -80,27 +80,6 @@ class HybridSearch(Runnable):
 
         return merged
 
-    def _merge_additional_docs(self, base_docs: list, additional_docs: list) -> list:
-        """
-        Merge additional docs into an existing list, deduplicating by normalized content.
-        Existing docs are preserved; additional docs are appended when not duplicate.
-        """
-        merged = list(base_docs)
-        seen = {
-            self._normalize_text(doc.get("page_content", ""))
-            for doc in merged
-            if self._normalize_text(doc.get("page_content", ""))
-        }
-
-        for doc in additional_docs:
-            content = self._normalize_text(doc.get("page_content", ""))
-            if not content or content in seen:
-                continue
-            merged.append(doc)
-            seen.add(content)
-
-        return merged
-
     def _bm25_docs(self, query: str, collection_name: str) -> list:
         """
         Retrieve BM25 candidates and convert them to the same doc shape used by the agent.
@@ -119,36 +98,14 @@ class HybridSearch(Runnable):
             _docs.append({"page_content": doc["page_content"], "metadata": metadata})
         return _docs
 
-    def _session_pdf_docs(self, query: str, config=None) -> list:
-        """
-        Retrieve candidates from the in-memory session PDF vector store.
-        Returns docs in the same serializable shape used by the agent.
-        """
-        configurable = (config or {}).get("configurable", {})
-        session_vs = configurable.get("session_pdf_vector_store")
-        if session_vs is None:
-            return []
-
-        results = session_vs.similarity_search(
-            query=query,
-            k=app_config.HYBRID_SESSION_TOP_K,
-        )
-        _docs = []
-        for doc in results:
-            metadata = doc.metadata or {}
-            metadata["retrieval_type"] = "session_pdf"
-            _docs.append({"page_content": doc.page_content, "metadata": metadata})
-        return _docs
-
     def invoke(self, input: State, config=None, **kwargs):
         """
         Merge retrieval candidates.
-        - GLOBAL_KB: semantic + optional bm25
-        - HYBRID: semantic + optional bm25 + session PDF (small additive budget)
+        KB-only enrichment:
+        - semantic + optional bm25
         """
         retriever_docs = input.get("retriever_docs", [])
         error = input.get("error")
-        intent = (input.get("search_intent") or "GLOBAL_KB").upper()
 
         standalone_question = input.get("standalone_question", "")
         kb_query = input.get("kb_query") or standalone_question
@@ -172,26 +129,12 @@ class HybridSearch(Runnable):
                 )
                 merged_docs = retriever_docs
 
-        # 2) intent-driven addition of session PDF docs
-        session_docs = []
-        if intent == "HYBRID":
-            try:
-                session_docs = self._session_pdf_docs(standalone_question, config=config)
-                merged_docs = self._merge_additional_docs(merged_docs, session_docs)
-            except Exception as exc:
-                logger.warning(
-                    "Hybrid session retrieval failed, fallback to DB-only docs: %s", exc
-                )
-
         logger.info(
-            "HybridSearch merged docs. intent=%s semantic=%d bm25=%d session=%d merged=%d bm25_top_k=%d session_top_k=%d",
-            intent,
+            "HybridSearch merged KB docs. semantic=%d bm25=%d merged=%d bm25_top_k=%d",
             len(retriever_docs),
             len(bm25_docs),
-            len(session_docs),
             len(merged_docs),
             app_config.HYBRID_TOP_K,
-            app_config.HYBRID_SESSION_TOP_K,
         )
 
         return {"retriever_docs": merged_docs, "error": error}

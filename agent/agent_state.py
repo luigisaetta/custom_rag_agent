@@ -45,12 +45,18 @@ class State(TypedDict):
     search_intent: str = "GLOBAL_KB"
     # true when a session in-memory pdf vector store is available
     has_session_pdf: bool = False
+    # true when advanced analysis is enabled from UI/runtime config
+    advanced_analysis_enabled: bool = False
+    # optional plan payload for advanced analysis subgraph
+    advanced_plan: Optional[list] = []
 
     # similarity_search
     # 30/06: modified, now they're a dict with
     # page_content and metadata
     # populated with docs_serializable (utils.py)
     retriever_docs: Optional[list] = []
+    # session docs collected in HYBRID flow before merge
+    session_retriever_docs: Optional[list] = []
     # reranker
     reranker_docs: Optional[list] = []
     # Answer

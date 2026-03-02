@@ -41,6 +41,12 @@ volumes:
   - ../../bm25_cache/ui:/app/bm25_cache
 ```
 
+Runtime note:
+1. OCI endpoints are resolved by `config.py`.
+2. Current public config supports separate regions for LLM and embeddings:
+   - `LLM_REGION` / `LLM_SERVICE_ENDPOINT`
+   - `EMBED_REGION` / `EMBED_SERVICE_ENDPOINT`
+
 Citation image server settings:
 
 ```yaml

@@ -27,6 +27,7 @@ Warnings:
 from langgraph.graph import StateGraph, START, END
 
 from agent.agent_state import State
+from agent.advanced_analysis_state import AdvancedAnalysisState
 
 from agent.content_moderation import ContentModerator
 from agent.query_rewriter import QueryRewriter
@@ -35,6 +36,13 @@ from agent.hybrid_query_builder import HybridQueryBuilder
 from agent.vector_search import SemanticSearch
 from agent.session_vector_search import SessionVectorSearch
 from agent.hybrid_search import HybridSearch
+from agent.hybrid_session_search import HybridSessionSearch
+from agent.hybrid_docs_merge import HybridDocsMerge
+from agent.advanced_analysis import (
+    AdvancedPlanner,
+    AdvancedAnalysisRunner,
+    AdvancedFinalSynthesis,
+)
 from agent.reranker import Reranker
 from agent.answer_generator import AnswerGenerator
 from core.utils import get_console_logger
@@ -51,11 +59,59 @@ def _route_after_intent(state: State) -> str:
     if intent == "SESSION_DOC":
         return "SessionSearch"
     if intent == "HYBRID":
-        logger.info(
-            "Intent HYBRID selected. Building KB query from session evidence."
-        )
-        return "HybridQueryBuilder"
+        if state.get("has_session_pdf") and state.get("advanced_analysis_enabled"):
+            logger.info(
+                "Intent HYBRID + session PDF + advanced-analysis enabled. Routing to advanced analysis subgraph."
+            )
+            return "AdvancedAnalysisFlow"
+        logger.info("Intent HYBRID selected. Routing to dedicated hybrid subgraph.")
+        return "HybridFlow"
     return "Search"
+
+
+def _create_hybrid_subgraph(
+    hybrid_query_builder,
+    semantic_search,
+    hybrid_search,
+    hybrid_session_search,
+    hybrid_docs_merge,
+):
+    """
+    Dedicated HYBRID flow subgraph:
+    HybridQueryBuilder -> Search -> HybridSearch -> HybridSessionSearch -> HybridDocsMerge
+    """
+    subgraph = StateGraph(State)
+    subgraph.add_node("HybridQueryBuilder", hybrid_query_builder)
+    subgraph.add_node("Search", semantic_search)
+    subgraph.add_node("HybridSearch", hybrid_search)
+    subgraph.add_node("HybridSessionSearch", hybrid_session_search)
+    subgraph.add_node("HybridDocsMerge", hybrid_docs_merge)
+
+    subgraph.add_edge(START, "HybridQueryBuilder")
+    subgraph.add_edge("HybridQueryBuilder", "Search")
+    subgraph.add_edge("Search", "HybridSearch")
+    subgraph.add_edge("HybridSearch", "HybridSessionSearch")
+    subgraph.add_edge("HybridSessionSearch", "HybridDocsMerge")
+    subgraph.add_edge("HybridDocsMerge", END)
+    return subgraph.compile()
+
+
+def _create_advanced_analysis_subgraph(
+    advanced_planner, advanced_runner, advanced_final_synthesis
+):
+    """
+    Advanced analysis subgraph:
+    Planner -> AdvancedAnalysis -> FinalSynthesis
+    """
+    subgraph = StateGraph(AdvancedAnalysisState)
+    subgraph.add_node("Planner", advanced_planner)
+    subgraph.add_node("AdvancedAnalysis", advanced_runner)
+    subgraph.add_node("FinalSynthesis", advanced_final_synthesis)
+    subgraph.add_edge(START, "Planner")
+    subgraph.add_edge("Planner", "AdvancedAnalysis")
+    subgraph.add_edge("AdvancedAnalysis", "FinalSynthesis")
+    subgraph.add_edge("FinalSynthesis", END)
+    return subgraph.compile()
 
 
 def create_workflow():
@@ -79,6 +135,28 @@ def create_workflow():
     session_search = SessionVectorSearch()
     # step 6: hybrid search placeholder (feature-flagged)
     hybrid_search = HybridSearch()
+    # step 6b: dedicated session retrieval for HYBRID flow
+    hybrid_session_search = HybridSessionSearch()
+    # step 6c: merge KB/session docs in HYBRID flow
+    hybrid_docs_merge = HybridDocsMerge()
+    # dedicated HYBRID branch orchestration
+    hybrid_flow = _create_hybrid_subgraph(
+        hybrid_query_builder=hybrid_query_builder,
+        semantic_search=semantic_search,
+        hybrid_search=hybrid_search,
+        hybrid_session_search=hybrid_session_search,
+        hybrid_docs_merge=hybrid_docs_merge,
+    )
+    
+    # advanced analysis branch (added 02/03/2026)
+    advanced_planner = AdvancedPlanner()
+    advanced_runner = AdvancedAnalysisRunner()
+    advanced_final_synthesis = AdvancedFinalSynthesis()
+    advanced_analysis_flow = _create_advanced_analysis_subgraph(
+        advanced_planner=advanced_planner,
+        advanced_runner=advanced_runner,
+        advanced_final_synthesis=advanced_final_synthesis,
+    )
     # step 7: filter and rerank, using a LLM
     reranker = Reranker()
     # step 8: generate final answer
@@ -88,10 +166,11 @@ def create_workflow():
     workflow.add_node("Moderator", moderator)
     workflow.add_node("QueryRewrite", query_rewriter)
     workflow.add_node("IntentClassifier", intent_classifier)
-    workflow.add_node("HybridQueryBuilder", hybrid_query_builder)
     workflow.add_node("Search", semantic_search)
     workflow.add_node("SessionSearch", session_search)
     workflow.add_node("HybridSearch", hybrid_search)
+    workflow.add_node("HybridFlow", hybrid_flow)
+    workflow.add_node("AdvancedAnalysisFlow", advanced_analysis_flow)
     workflow.add_node("Rerank", reranker)
     workflow.add_node("Answer", answer_generator)
 
@@ -108,13 +187,15 @@ def create_workflow():
         {
             "Search": "Search",
             "SessionSearch": "SessionSearch",
-            "HybridQueryBuilder": "HybridQueryBuilder",
+            "HybridFlow": "HybridFlow",
+            "AdvancedAnalysisFlow": "AdvancedAnalysisFlow",
         },
     )
-    workflow.add_edge("HybridQueryBuilder", "Search")
     workflow.add_edge("Search", "HybridSearch")
     workflow.add_edge("SessionSearch", "Rerank")
     workflow.add_edge("HybridSearch", "Rerank")
+    workflow.add_edge("HybridFlow", "Rerank")
+    workflow.add_edge("AdvancedAnalysisFlow", END)
     workflow.add_edge("Rerank", "Answer")
     workflow.add_edge("Answer", END)
 

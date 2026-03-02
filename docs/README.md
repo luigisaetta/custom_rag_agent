@@ -5,6 +5,9 @@ This document consolidates:
 1. Current implementation details for uploaded PDF handling.
 2. Recommended retrieval strategy and hardening notes for PoC evolution.
 
+Related document:
+- [Advanced Analysis](./advanced_analysis.md)
+
 ## Overview
 
 The app supports an optional session-scoped PDF workflow:
@@ -58,7 +61,7 @@ Workflow module: [rag_agent.py](../agent/rag_agent.py)
 
 Current high-level graph:
 
-`Moderator -> QueryRewrite -> IntentClassifier -> (Search | SessionSearch | HybridQueryBuilder) -> ...`
+`Moderator -> QueryRewrite -> IntentClassifier -> (Search | SessionSearch | HybridFlow) -> Rerank -> Answer`
 
 #### Intent Definition and Call Sequences
 
@@ -80,7 +83,8 @@ SESSION_DOC
 START -> Moderator -> QueryRewrite -> IntentClassifier -> SessionSearch -> Rerank -> Answer -> END
 
 HYBRID
-START -> Moderator -> QueryRewrite -> IntentClassifier -> HybridQueryBuilder -> Search -> HybridSearch -> Rerank -> Answer -> END
+START -> Moderator -> QueryRewrite -> IntentClassifier -> HybridFlow -> Rerank -> Answer -> END
+HybridFlow subgraph: HybridQueryBuilder -> Search -> HybridSearch -> HybridSessionSearch -> HybridDocsMerge
 ```
 
 Intent classifier node: [intent_classifier.py](../agent/intent_classifier.py)
@@ -95,7 +99,7 @@ Current behavior by intent:
 
 1. `GLOBAL_KB`: existing DB retrieval path (`Search` + `HybridSearch`) is used.
 2. `SESSION_DOC`: session-only retrieval path is used (`SessionSearch`).
-3. `HYBRID`: routed through `Search` + `HybridSearch`; `HybridSearch` adds a conservative number of session-PDF chunks to DB candidates (semantic + BM25), then deduplicates.
+3. `HYBRID`: routed through dedicated `HybridFlow` subgraph (`HybridQueryBuilder -> Search -> HybridSearch -> HybridSessionSearch -> HybridDocsMerge`); `HybridSearch` remains KB-only (semantic + BM25), session chunks are retrieved in `HybridSessionSearch`, then merged in `HybridDocsMerge`.
 
 ### Session-Only Retrieval
 

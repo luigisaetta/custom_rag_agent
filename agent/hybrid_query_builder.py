@@ -1,5 +1,20 @@
 """
-Build a KB-focused query for HYBRID retrieval using session-PDF evidence.
+File name: hybrid_query_builder.py
+Author: Luigi Saetta
+Last modified: 02-03-2026
+Python Version: 3.11
+
+Description:
+    This module builds a KB-focused query for the HYBRID flow,
+    enriching the user request with session-PDF evidence.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+        from agent.hybrid_query_builder import HybridQueryBuilder
+
+License:
+    This code is released under the MIT License.
 """
 
 from langchain_core.runnables import Runnable
@@ -101,4 +116,3 @@ class HybridQueryBuilder(Runnable):
             )
 
         return {"kb_query": kb_query, "error": error}
-

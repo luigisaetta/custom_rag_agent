@@ -61,12 +61,17 @@ class IntentClassifier(Runnable):
         has_session_pdf = self._has_session_pdf(config)
         user_request = input.get("user_request", "")
         error = input.get("error")
+        configurable = (config or {}).get("configurable", {})
+        advanced_analysis_enabled = bool(
+            configurable.get("enable_advanced_analysis", False)
+        )
 
         if not has_session_pdf:
             logger.info("IntentClassifier decision: GLOBAL_KB (no session PDF in memory).")
             return {
                 "search_intent": "GLOBAL_KB",
                 "has_session_pdf": False,
+                "advanced_analysis_enabled": advanced_analysis_enabled,
                 "error": error,
             }
 
@@ -87,7 +92,12 @@ class IntentClassifier(Runnable):
                 has_session_pdf,
             )
 
-            return {"search_intent": intent, "has_session_pdf": True, "error": error}
+            return {
+                "search_intent": intent,
+                "has_session_pdf": True,
+                "advanced_analysis_enabled": advanced_analysis_enabled,
+                "error": error,
+            }
         except Exception as exc:
             logger.warning(
                 "IntentClassifier failed, fallback to GLOBAL_KB: %s",
@@ -96,5 +106,6 @@ class IntentClassifier(Runnable):
             return {
                 "search_intent": "GLOBAL_KB",
                 "has_session_pdf": True,
+                "advanced_analysis_enabled": advanced_analysis_enabled,
                 "error": error,
             }

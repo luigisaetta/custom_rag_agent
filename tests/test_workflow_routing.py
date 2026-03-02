@@ -32,10 +32,12 @@ class _FakeIntentClassifier(Runnable):
         configurable = (config or {}).get("configurable", {})
         session_vs = configurable.get("session_pdf_vector_store")
         chunks_count = configurable.get("session_pdf_chunks_count", 0)
+        advanced_enabled = bool(configurable.get("enable_advanced_analysis", False))
         if session_vs is None or chunks_count <= 0:
             return {
                 "search_intent": "GLOBAL_KB",
                 "has_session_pdf": False,
+                "advanced_analysis_enabled": advanced_enabled,
                 "error": input_state.get("error"),
             }
 
@@ -43,6 +45,7 @@ class _FakeIntentClassifier(Runnable):
         return {
             "search_intent": forced_intent,
             "has_session_pdf": True,
+            "advanced_analysis_enabled": advanced_enabled,
             "error": input_state.get("error"),
         }
 
@@ -98,6 +101,12 @@ class _FakeHybridSearch(Runnable):
                 },
             }
         )
+        return {"retriever_docs": docs, "error": input_state.get("error")}
+
+
+class _FakeHybridSessionSearch(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        docs = []
         if input_state.get("search_intent") == "HYBRID":
             docs.append(
                 {
@@ -109,7 +118,37 @@ class _FakeHybridSearch(Runnable):
                     },
                 }
             )
-        return {"retriever_docs": docs, "error": input_state.get("error")}
+        return {"session_retriever_docs": docs, "error": input_state.get("error")}
+
+
+class _FakeHybridDocsMerge(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        kb_docs = list(input_state.get("retriever_docs", []))
+        session_docs = list(input_state.get("session_retriever_docs", []))
+        return {"retriever_docs": kb_docs + session_docs, "error": input_state.get("error")}
+
+
+class _FakeAdvancedPlanner(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        return {"advanced_plan": [], "error": input_state.get("error")}
+
+
+class _FakeAdvancedRunner(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        return {
+            "advanced_step_outputs": ["### Step 1 - mock\nmock step output"],
+            "citations": [],
+            "error": input_state.get("error"),
+        }
+
+
+class _FakeAdvancedFinalSynthesis(Runnable):
+    def invoke(self, input_state, config=None, **kwargs):
+        return {
+            "final_answer": "advanced placeholder with synthesis",
+            "citations": input_state.get("citations", []),
+            "error": input_state.get("error"),
+        }
 
 
 class _FakeRerank(Runnable):
@@ -141,6 +180,17 @@ def _build_workflow_with_mocks(monkeypatch):
     monkeypatch.setattr(rag_module, "SemanticSearch", lambda: _FakeSearch())
     monkeypatch.setattr(rag_module, "SessionVectorSearch", lambda: _FakeSessionSearch())
     monkeypatch.setattr(rag_module, "HybridSearch", lambda: _FakeHybridSearch())
+    monkeypatch.setattr(
+        rag_module, "HybridSessionSearch", lambda: _FakeHybridSessionSearch()
+    )
+    monkeypatch.setattr(rag_module, "HybridDocsMerge", lambda: _FakeHybridDocsMerge())
+    monkeypatch.setattr(rag_module, "AdvancedPlanner", lambda: _FakeAdvancedPlanner())
+    monkeypatch.setattr(
+        rag_module, "AdvancedAnalysisRunner", lambda: _FakeAdvancedRunner()
+    )
+    monkeypatch.setattr(
+        rag_module, "AdvancedFinalSynthesis", lambda: _FakeAdvancedFinalSynthesis()
+    )
     monkeypatch.setattr(rag_module, "Reranker", lambda: _FakeRerank())
     monkeypatch.setattr(rag_module, "AnswerGenerator", lambda: _FakeAnswer())
     return rag_module.create_workflow()
@@ -172,7 +222,7 @@ def test_global_kb_route_without_session_pdf(monkeypatch):
 
     assert "Search" in steps
     assert "HybridSearch" in steps
-    assert "HybridQueryBuilder" not in steps
+    assert "HybridFlow" not in steps
     assert "SessionSearch" not in steps
     assert by_step["IntentClassifier"]["search_intent"] == "GLOBAL_KB"
 
@@ -192,7 +242,7 @@ def test_session_doc_route_uses_only_session_search(monkeypatch):
 
     assert "SessionSearch" in steps
     assert "Search" not in steps
-    assert "HybridQueryBuilder" not in steps
+    assert "HybridFlow" not in steps
     assert "HybridSearch" not in steps
     retrieval_types = {c["retrieval_type"] for c in by_step["Rerank"]["citations"]}
     assert retrieval_types == {"session_pdf"}
@@ -211,9 +261,7 @@ def test_hybrid_route_merges_db_and_session_provenance(monkeypatch):
         },
     )
 
-    assert "Search" in steps
-    assert "HybridQueryBuilder" in steps
-    assert "HybridSearch" in steps
+    assert "HybridFlow" in steps
     assert "SessionSearch" not in steps
     retrieval_types = {c["retrieval_type"] for c in by_step["Rerank"]["citations"]}
     assert retrieval_types == {"semantic", "bm25", "session_pdf"}
@@ -234,3 +282,23 @@ def test_global_route_contains_db_provenance(monkeypatch):
 
     retrieval_types = {c["retrieval_type"] for c in by_step["Rerank"]["citations"]}
     assert retrieval_types == {"semantic", "bm25"}
+
+
+def test_hybrid_route_uses_advanced_subgraph_when_enabled(monkeypatch):
+    app = _build_workflow_with_mocks(monkeypatch)
+    steps, by_step = _run_workflow(
+        app,
+        {
+            "configurable": {
+                "forced_intent": "HYBRID",
+                "session_pdf_vector_store": object(),
+                "session_pdf_chunks_count": 5,
+                "enable_advanced_analysis": True,
+            }
+        },
+    )
+
+    assert "AdvancedAnalysisFlow" in steps
+    assert "HybridFlow" not in steps
+    assert "Rerank" not in steps
+    assert by_step["AdvancedAnalysisFlow"]["final_answer"]

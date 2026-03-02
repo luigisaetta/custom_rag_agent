@@ -1,0 +1,460 @@
+"""
+File name: advanced_analysis.py
+Author: Luigi Saetta
+Last modified: 02-03-2026
+Python Version: 3.11
+
+Description:
+    This module defines nodes used by the advanced analysis subgraph.
+
+Usage:
+    Import this module into other scripts to use its functions.
+    Example:
+        from agent.advanced_analysis import AdvancedPlanner, AdvancedAnalysisRunner
+
+License:
+    This code is released under the MIT License.
+"""
+
+from langchain_core.runnables import Runnable
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import PromptTemplate
+import oracledb
+import time
+
+from agent.advanced_analysis_state import AdvancedAnalysisState
+from agent.prompts import (
+    ADVANCED_ANALYSIS_PLANNER_TEMPLATE,
+    ADVANCED_ANALYSIS_STEP_TEMPLATE,
+    ADVANCED_ANALYSIS_SYNTHESIS_TEMPLATE,
+)
+from core.oci_models import get_llm, get_embedding_model, get_oracle_vs
+from core.utils import get_console_logger, extract_json_from_text, docs_serializable
+from config import (
+    ADVANCED_ANALYSIS_MAX_ACTIONS,
+    ADVANCED_ANALYSIS_KB_TOP_K,
+    ADVANCED_ANALYSIS_STEP_MAX_WORDS,
+    EMBED_MODEL_TYPE,
+    HYBRID_SESSION_TOP_K,
+)
+from config_private import CONNECT_ARGS
+
+logger = get_console_logger()
+
+
+class AdvancedPlanner(Runnable):
+    """
+    First step in advanced-analysis subgraph.
+    For now it initializes an empty plan.
+    """
+
+    @staticmethod
+    def _serialize_all_session_chunks(
+        session_docs: list, max_chars_per_chunk: int = 1400
+    ) -> str:
+        """
+        Build a compact text view over all session chunks.
+        Keeps all chunks (no global cut), truncating each chunk for prompt safety.
+        """
+        parts = []
+        for idx, doc in enumerate(session_docs):
+            metadata = doc.get("metadata") or {}
+            source = metadata.get("source", "uploaded.pdf")
+            page = metadata.get("page_label", "")
+            text = (doc.get("page_content") or "").strip()
+            if not text:
+                continue
+            if len(text) > max_chars_per_chunk:
+                text = text[:max_chars_per_chunk] + "..."
+            block = f"[{idx + 1}] source={source} page={page}\n{text}"
+            parts.append(block)
+        return "\n\n".join(parts)
+
+    @staticmethod
+    def _normalize_plan(plan: list, max_actions: int) -> list:
+        out = []
+        for i, step in enumerate(plan[:max_actions], start=1):
+            if not isinstance(step, dict):
+                continue
+            section = str(step.get("section", "")).strip() or "unknown section"
+            raw_chunk_numbers = step.get("chunk_numbers", [])
+            chunk_numbers = []
+            if isinstance(raw_chunk_numbers, list):
+                for n in raw_chunk_numbers:
+                    if isinstance(n, int) and n > 0:
+                        chunk_numbers.append(n)
+                    elif isinstance(n, str) and n.isdigit() and int(n) > 0:
+                        chunk_numbers.append(int(n))
+            objective = str(step.get("objective", "")).strip() or "analyze section relevance"
+            kb_needed = bool(step.get("kb_search_needed", False))
+            kb_query = str(step.get("kb_query", "")).strip() if kb_needed else ""
+            out.append(
+                {
+                    "step": i,
+                    "section": section,
+                    "chunk_numbers": chunk_numbers,
+                    "objective": objective,
+                    "kb_search_needed": kb_needed,
+                    "kb_query": kb_query,
+                }
+            )
+        return out
+
+    def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
+        error = input.get("error")
+        user_request = input.get("user_request", "")
+        configurable = (config or {}).get("configurable", {})
+        model_id = configurable.get("model_id")
+        max_actions = int(
+            configurable.get("advanced_analysis_max_actions", ADVANCED_ANALYSIS_MAX_ACTIONS)
+        )
+        max_actions = max(1, max_actions)
+
+        # all chunks from session PDF are expected here (serialized docs)
+        session_docs = list(configurable.get("session_pdf_docs", []))
+        if not session_docs:
+            logger.warning("AdvancedPlanner: no session_pdf_docs available.")
+            return {"advanced_plan": [], "error": error}
+
+        try:
+            session_chunks = self._serialize_all_session_chunks(session_docs)
+            prompt = PromptTemplate(
+                input_variables=["user_request", "session_chunks", "max_actions"],
+                template=ADVANCED_ANALYSIS_PLANNER_TEMPLATE,
+            ).format(
+                user_request=user_request,
+                session_chunks=session_chunks,
+                max_actions=max_actions,
+            )
+
+            llm = get_llm(model_id=model_id, temperature=0.0)
+            response = llm.invoke([HumanMessage(content=prompt)]).content
+            parsed = extract_json_from_text(response)
+            raw_plan = parsed.get("plan", [])
+            advanced_plan = self._normalize_plan(raw_plan, max_actions=max_actions)
+
+            logger.info("AdvancedPlanner final plan: %s", advanced_plan)
+            return {"advanced_plan": advanced_plan, "error": error}
+        except Exception as exc:
+            logger.exception("AdvancedPlanner failed: %s", exc)
+            return {"advanced_plan": [], "error": error}
+
+
+class AdvancedAnalysisRunner(Runnable):
+    """
+    Execute advanced-analysis plan step by step.
+    """
+
+    @staticmethod
+    def _select_pdf_chunks(session_docs: list, chunk_numbers: list) -> list:
+        chunk_numbers = sorted(set(n for n in chunk_numbers if isinstance(n, int) and n > 0))
+        selected = []
+        for n in chunk_numbers:
+            idx = n - 1
+            if 0 <= idx < len(session_docs):
+                selected.append((n, session_docs[idx]))
+        return selected
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        return " ".join((text or "").split()).strip().lower()
+
+    def _extend_with_neighbors(self, session_docs: list, chunk_numbers: list, radius: int = 1) -> list:
+        expanded = set()
+        total = len(session_docs)
+        for n in chunk_numbers:
+            if not isinstance(n, int):
+                continue
+            for x in range(max(1, n - radius), min(total, n + radius) + 1):
+                expanded.add(x)
+        return self._select_pdf_chunks(session_docs, sorted(expanded))
+
+    @staticmethod
+    def _selected_text_len(selected_chunks: list) -> int:
+        return sum(len((doc.get("page_content") or "")) for _n, doc in selected_chunks)
+
+    @staticmethod
+    def _format_pdf_context(selected_chunks: list, max_chars: int = 12000) -> str:
+        parts = []
+        used = 0
+        for n, doc in selected_chunks:
+            metadata = doc.get("metadata") or {}
+            source = metadata.get("source", "uploaded.pdf")
+            page = metadata.get("page_label", "")
+            text = (doc.get("page_content") or "").strip()
+            if not text:
+                continue
+            block = f"[chunk {n}] source={source} page={page}\n{text}"
+            if used + len(block) > max_chars:
+                break
+            parts.append(block)
+            used += len(block)
+        return "\n\n".join(parts) if parts else "No PDF evidence selected."
+
+    @staticmethod
+    def _format_kb_context(kb_docs: list, max_chars: int = 8000) -> str:
+        parts = []
+        used = 0
+        for i, doc in enumerate(kb_docs, start=1):
+            metadata = doc.get("metadata") or {}
+            source = metadata.get("source", "kb")
+            page = metadata.get("page_label", "")
+            text = (doc.get("page_content") or "").strip()
+            if not text:
+                continue
+            block = f"[kb {i}] source={source} page={page}\n{text}"
+            if used + len(block) > max_chars:
+                break
+            parts.append(block)
+            used += len(block)
+        return "\n\n".join(parts) if parts else "No KB evidence retrieved."
+
+    @staticmethod
+    def _kb_search_docs(query: str, collection_name: str, embed_model_type: str, top_k: int) -> list:
+        embed_model = get_embedding_model(embed_model_type)
+        with oracledb.connect(**CONNECT_ARGS) as conn:
+            v_store = get_oracle_vs(
+                conn=conn,
+                collection_name=collection_name,
+                embed_model=embed_model,
+            )
+            docs = v_store.similarity_search(query=query, k=top_k)
+
+        out = []
+        for doc in docs:
+            metadata = doc.metadata or {}
+            metadata["retrieval_type"] = "semantic"
+            out.append({"page_content": doc.page_content, "metadata": metadata})
+        return out
+
+    @staticmethod
+    def _build_citations(selected_chunks: list, kb_docs: list) -> list:
+        citations = []
+        for _n, doc in selected_chunks:
+            metadata = doc.get("metadata") or {}
+            citations.append(
+                {
+                    "source": metadata.get("source", "uploaded.pdf"),
+                    "page": metadata.get("page_label", ""),
+                    "retrieval_type": "session_pdf",
+                }
+            )
+        for doc in kb_docs:
+            metadata = doc.get("metadata") or {}
+            citations.append(
+                {
+                    "source": metadata.get("source", "unknown"),
+                    "page": metadata.get("page_label", ""),
+                    "retrieval_type": metadata.get("retrieval_type", "semantic"),
+                }
+            )
+        return citations
+
+    @staticmethod
+    def _session_retrieval_fallback(configurable: dict, query: str, top_k: int) -> list:
+        session_vs = configurable.get("session_pdf_vector_store")
+        if session_vs is None:
+            return []
+        try:
+            docs = session_vs.similarity_search(query=query, k=top_k)
+            for doc in docs:
+                if doc.metadata is None:
+                    doc.metadata = {}
+                doc.metadata["retrieval_type"] = "session_pdf"
+            return docs_serializable(docs)
+        except Exception:
+            return []
+
+    def _merge_selected_with_fallback(self, selected_chunks: list, fallback_docs: list) -> list:
+        merged = list(selected_chunks)
+        seen = {
+            self._normalize_text((doc.get("page_content") or ""))
+            for _n, doc in merged
+            if self._normalize_text((doc.get("page_content") or ""))
+        }
+        next_idx = max([n for n, _ in merged], default=0) + 1
+        for doc in fallback_docs:
+            content = self._normalize_text(doc.get("page_content", ""))
+            if not content or content in seen:
+                continue
+            merged.append((next_idx, doc))
+            next_idx += 1
+            seen.add(content)
+        return merged
+
+    def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
+        error = input.get("error")
+        plan = input.get("advanced_plan", [])
+        user_request = input.get("user_request", "")
+        configurable = (config or {}).get("configurable", {})
+        session_docs = list(configurable.get("session_pdf_docs", []))
+        model_id = configurable.get("model_id")
+        collection_name = configurable.get("collection_name", "UNKNOWN")
+        embed_model_type = configurable.get("embed_model_type", EMBED_MODEL_TYPE)
+        kb_top_k = int(configurable.get("advanced_analysis_kb_top_k", ADVANCED_ANALYSIS_KB_TOP_K))
+        step_max_words = int(
+            configurable.get("advanced_analysis_step_max_words", ADVANCED_ANALYSIS_STEP_MAX_WORDS)
+        )
+        kb_top_k = max(1, kb_top_k)
+        step_max_words = max(120, step_max_words)
+
+        logger.info(
+            "AdvancedAnalysisFlow called. plan_steps=%d session_chunks=%d",
+            len(plan),
+            len(session_docs),
+        )
+
+        if not plan:
+            return {
+                "final_answer": "Advanced analysis could not run because no execution plan was generated.",
+                "citations": [],
+                "error": error,
+            }
+
+        llm = get_llm(model_id=model_id, temperature=0.0)
+        step_outputs = []
+        all_citations = []
+
+        for action in plan:
+            step_start = time.time()
+            step_no = action.get("step", 0)
+            section = action.get("section", "unknown section")
+            objective = action.get("objective", "")
+            chunk_numbers = list(action.get("chunk_numbers", []))
+            kb_needed = bool(action.get("kb_search_needed", False))
+            kb_query = str(action.get("kb_query", "")).strip()
+
+            selected_chunks = self._select_pdf_chunks(session_docs, chunk_numbers)
+            # include small neighborhood for better local context continuity
+            if chunk_numbers:
+                selected_chunks = self._extend_with_neighbors(session_docs, chunk_numbers, radius=1)
+
+            # robust fallback: if planner pointers are weak/missing, retrieve from session store by step query
+            step_query = f"{user_request}\n{section}\n{objective}".strip()
+            if kb_query:
+                step_query = f"{step_query}\n{kb_query}"
+            if (not selected_chunks) or (self._selected_text_len(selected_chunks) < 260):
+                fallback_docs = self._session_retrieval_fallback(
+                    configurable=configurable,
+                    query=step_query,
+                    top_k=HYBRID_SESSION_TOP_K,
+                )
+                selected_chunks = self._merge_selected_with_fallback(selected_chunks, fallback_docs)
+
+            kb_docs = []
+            if kb_needed:
+                try:
+                    query = kb_query or f"{user_request} {objective}".strip()
+                    kb_docs = self._kb_search_docs(
+                        query=query,
+                        collection_name=collection_name,
+                        embed_model_type=embed_model_type,
+                        top_k=kb_top_k,
+                    )
+                except Exception as exc:
+                    logger.warning("AdvancedAnalysis step %s KB search failed: %s", step_no, exc)
+                    kb_docs = []
+
+            pdf_context = self._format_pdf_context(selected_chunks)
+            kb_context = self._format_kb_context(kb_docs)
+            prompt = PromptTemplate(
+                input_variables=[
+                    "max_words",
+                    "user_request",
+                    "step",
+                    "section",
+                    "objective",
+                    "kb_search_needed",
+                    "kb_query",
+                    "pdf_context",
+                    "kb_context",
+                ],
+                template=ADVANCED_ANALYSIS_STEP_TEMPLATE,
+            ).format(
+                max_words=step_max_words,
+                user_request=user_request,
+                step=step_no,
+                section=section,
+                objective=objective,
+                kb_search_needed=kb_needed,
+                kb_query=kb_query,
+                pdf_context=pdf_context,
+                kb_context=kb_context,
+            )
+
+            try:
+                step_text = (llm.invoke([HumanMessage(content=prompt)]).content or "").strip()
+            except Exception as exc:
+                logger.warning("AdvancedAnalysis step %s generation failed: %s", step_no, exc)
+                step_text = "Unable to generate this step due to a transient model issue."
+
+            step_elapsed = round(time.time() - step_start, 2)
+            logger.info(
+                "AdvancedAnalysis step=%s elapsed=%ss pdf_chunks=%d kb_needed=%s kb_docs=%d",
+                step_no,
+                step_elapsed,
+                len(selected_chunks),
+                kb_needed,
+                len(kb_docs),
+            )
+
+            step_outputs.append(f"### Step {step_no} - {section}\n{step_text}")
+            all_citations.extend(self._build_citations(selected_chunks, kb_docs))
+
+        logger.info("AdvancedAnalysis steps generated. steps=%d", len(step_outputs))
+        return {
+            "advanced_step_outputs": step_outputs,
+            "citations": all_citations,
+            "error": error,
+        }
+
+
+class AdvancedFinalSynthesis(Runnable):
+    """
+    Build final synthesis and compose output:
+    - all step outputs
+    - final synthesis section
+    """
+
+    def invoke(self, input: AdvancedAnalysisState, config=None, **kwargs):
+        error = input.get("error")
+        user_request = input.get("user_request", "")
+        step_outputs = list(input.get("advanced_step_outputs", []))
+        citations = list(input.get("citations", []))
+        configurable = (config or {}).get("configurable", {})
+        model_id = configurable.get("model_id")
+        step_max_words = int(
+            configurable.get("advanced_analysis_step_max_words", ADVANCED_ANALYSIS_STEP_MAX_WORDS)
+        )
+        synthesis_max_words = max(180, int(step_max_words * 0.8))
+
+        if not step_outputs:
+            return {
+                "final_answer": "Advanced analysis did not produce step outputs to synthesize.",
+                "citations": citations,
+                "error": error,
+            }
+
+        synthesis_text = ""
+        try:
+            llm = get_llm(model_id=model_id, temperature=0.0)
+            prompt = PromptTemplate(
+                input_variables=["max_words", "user_request", "step_outputs"],
+                template=ADVANCED_ANALYSIS_SYNTHESIS_TEMPLATE,
+            ).format(
+                max_words=synthesis_max_words,
+                user_request=user_request,
+                step_outputs="\n\n".join(step_outputs),
+            )
+            synthesis_text = (llm.invoke([HumanMessage(content=prompt)]).content or "").strip()
+        except Exception as exc:
+            logger.warning("AdvancedFinalSynthesis failed: %s", exc)
+            synthesis_text = "Unable to generate final synthesis due to a transient model issue."
+
+        final_answer = (
+            "\n\n".join(step_outputs).strip()
+            + "\n\n---\n\n## Final Synthesis\n"
+            + synthesis_text
+        )
+        logger.info("AdvancedFinalSynthesis generated.")
+        return {"final_answer": final_answer, "citations": citations, "error": error}

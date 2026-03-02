@@ -39,7 +39,7 @@ from py_zipkin import Encoding
 from agent.rag_agent import State, create_workflow
 from core.rag_feedback import RagFeedback
 from core.transport import http_transport
-from core.utils import get_console_logger
+from core.utils import get_console_logger, docs_serializable
 from core.citation_utils import build_citation_url, parse_page_number
 from core.session_pdf_vlm import scan_pdf_to_docs_with_vlm
 from core.oci_models import get_embedding_model
@@ -98,6 +98,8 @@ if "session_pdf_chunks_count" not in st.session_state:
     st.session_state.session_pdf_chunks_count = 0
 if "session_pdf_vector_store" not in st.session_state:
     st.session_state.session_pdf_vector_store = None
+if "session_pdf_docs" not in st.session_state:
+    st.session_state.session_pdf_docs = []
 
 
 #
@@ -118,6 +120,7 @@ def reset_conversation():
     st.session_state.session_pdf_name = ""
     st.session_state.session_pdf_chunks_count = 0
     st.session_state.session_pdf_vector_store = None
+    st.session_state.session_pdf_docs = []
 
     # change thread_id
     st.session_state.thread_id = str(uuid.uuid4())
@@ -192,6 +195,33 @@ def render_references(citations: list) -> None:
                 )
 
 
+def _safe_agent_config_for_log(
+    agent_config: dict, max_docs_preview: int = 2, max_chars: int = 160
+) -> dict:
+    """
+    Build a redacted version of agent config for logging.
+    In particular, truncate session_pdf_docs to avoid logging full PDF content.
+    """
+    safe = dict(agent_config)
+    configurable = dict(safe.get("configurable", {}))
+    docs = list(configurable.get("session_pdf_docs", []) or [])
+
+    preview = []
+    for doc in docs[:max_docs_preview]:
+        metadata = dict((doc or {}).get("metadata", {}) or {})
+        text = str((doc or {}).get("page_content", "") or "")
+        if len(text) > max_chars:
+            text = text[:max_chars] + "..."
+        preview.append({"page_content": text, "metadata": metadata})
+
+    configurable["session_pdf_docs"] = {
+        "count": len(docs),
+        "preview": preview,
+    }
+    safe["configurable"] = configurable
+    return safe
+
+
 #
 # Main
 #
@@ -228,6 +258,9 @@ st.sidebar.text_input(label="Session PDF VLM", value=config.VLM_MODEL_ID, disabl
 
 st.session_state.enable_reranker = st.sidebar.checkbox(
     "Enable Reranker", value=True, disabled=False
+)
+st.session_state.enable_advanced_analysis = st.sidebar.checkbox(
+    "Advanced Analysis", value=False, disabled=False
 )
 config.ENABLE_TRACING = st.sidebar.checkbox(
     "Enable tracing", value=False, disabled=False
@@ -285,6 +318,7 @@ if st.sidebar.button("Scan PDF in memory"):
             st.session_state.session_pdf_vector_store = session_vs
             st.session_state.session_pdf_name = session_pdf.name
             st.session_state.session_pdf_chunks_count = len(docs)
+            st.session_state.session_pdf_docs = docs_serializable(docs)
 
             progress_bar.progress(100)
             status_slot.success(
@@ -349,17 +383,22 @@ if question := st.chat_input("Hello, how can I help you?"):
                             "model_id": st.session_state.model_id,
                             "embed_model_type": config.EMBED_MODEL_TYPE,
                             "enable_reranker": st.session_state.enable_reranker,
+                            "enable_advanced_analysis": st.session_state.enable_advanced_analysis,
                             "enable_tracing": config.ENABLE_TRACING,
                             "main_language": config.MAIN_LANGUAGE,
                             "collection_name": st.session_state.collection_name,
                             "thread_id": st.session_state.thread_id,
                             "session_pdf_vector_store": st.session_state.session_pdf_vector_store,
                             "session_pdf_chunks_count": st.session_state.session_pdf_chunks_count,
+                            "session_pdf_docs": st.session_state.session_pdf_docs,
+                            "advanced_analysis_max_actions": config.ADVANCED_ANALYSIS_MAX_ACTIONS,
+                            "advanced_analysis_kb_top_k": config.ADVANCED_ANALYSIS_KB_TOP_K,
+                            "advanced_analysis_step_max_words": config.ADVANCED_ANALYSIS_STEP_MAX_WORDS,
                         }
                     }
 
                     logger.info("")
-                    logger.info("Agent config: %s", agent_config)
+                    logger.info("Agent config: %s", _safe_agent_config_for_log(agent_config))
                     logger.info("")
 
                     # loop to manage streaming
@@ -393,18 +432,20 @@ if question := st.chat_input("Hello, how can I help you?"):
                 # process final result from agent
                 if ERROR is None:
                     # visualize the output
-                    answer_generator = results[-1]["final_answer"]
+                    answer_payload = results[-1]["final_answer"]
 
-                    # Stream
                     with st.chat_message(ASSISTANT):
                         response_container = st.empty()
                         FULL_RESPONSE = ""
 
-                        for chunk in answer_generator:
-                            FULL_RESPONSE += chunk.content
-                            response_container.markdown(FULL_RESPONSE + "▌")
-
-                        response_container.markdown(FULL_RESPONSE)
+                        if isinstance(answer_payload, str):
+                            FULL_RESPONSE = answer_payload
+                            response_container.markdown(FULL_RESPONSE)
+                        else:
+                            for chunk in answer_payload:
+                                FULL_RESPONSE += chunk.content
+                                response_container.markdown(FULL_RESPONSE + "▌")
+                            response_container.markdown(FULL_RESPONSE)
 
                     elapsed_time = round((time.time() - time_start), 1)
                     logger.info("Elapsed time: %s sec.", elapsed_time)

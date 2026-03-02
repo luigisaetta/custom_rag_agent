@@ -26,6 +26,19 @@ Deployment components in `deployment/docker`:
 
 ## Configuration Files Checklist
 
+### 0) `config.py` (project root, public runtime settings)
+
+Path:
+`/home/ubuntu/custom_rag_agent/config.py`
+
+Must verify:
+1. OCI regions/endpoints are set as intended:
+   - `LLM_REGION` / `LLM_SERVICE_ENDPOINT`
+   - `EMBED_REGION` / `EMBED_SERVICE_ENDPOINT`
+2. Embedding model settings are coherent with the embedding region:
+   - `EMBED_MODEL_TYPE`
+   - `EMBED_MODEL_ID`
+
 ### 1) `config_private.py` (project root)
 
 Path:

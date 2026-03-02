@@ -20,6 +20,7 @@ from agent.agent_state import State
 from agent.rag_agent import create_workflow
 from core.oci_models import get_embedding_model
 from core.session_pdf_vlm import scan_pdf_to_docs_with_vlm
+from core.utils import docs_serializable
 
 
 def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -176,7 +177,12 @@ def _build_or_get_session_store(
     if docs:
         session_vs.add_documents(docs)
 
-    payload = {"vector_store": session_vs, "chunks_count": len(docs), "source_name": path.name}
+    payload = {
+        "vector_store": session_vs,
+        "chunks_count": len(docs),
+        "source_name": path.name,
+        "docs": docs_serializable(docs),
+    }
     cache[pdf_path] = payload
     return payload
 
@@ -194,6 +200,7 @@ def _run_case(
     session_vs = None
     session_chunks_count = 0
     session_source_name = ""
+    session_docs = []
 
     if session_pdf_path:
         session_payload = _build_or_get_session_store(
@@ -204,18 +211,24 @@ def _run_case(
         session_vs = session_payload["vector_store"]
         session_chunks_count = int(session_payload["chunks_count"])
         session_source_name = session_payload["source_name"]
+        session_docs = list(session_payload.get("docs", []))
 
     cfg = {
         "configurable": {
             "model_id": model_id,
             "embed_model_type": config.EMBED_MODEL_TYPE,
             "enable_reranker": enable_reranker,
+            "enable_advanced_analysis": False,
             "enable_tracing": False,
             "main_language": config.MAIN_LANGUAGE,
             "collection_name": collection_name,
             "thread_id": f"eval-{case['id']}",
             "session_pdf_vector_store": session_vs,
             "session_pdf_chunks_count": session_chunks_count,
+            "session_pdf_docs": session_docs,
+            "advanced_analysis_max_actions": config.ADVANCED_ANALYSIS_MAX_ACTIONS,
+            "advanced_analysis_kb_top_k": config.ADVANCED_ANALYSIS_KB_TOP_K,
+            "advanced_analysis_step_max_words": config.ADVANCED_ANALYSIS_STEP_MAX_WORDS,
         }
     }
 
@@ -244,6 +257,8 @@ def _run_case(
                 citations = list(payload.get("citations", []))
                 reranker_docs_count = len(payload.get("reranker_docs", []))
             elif node_name == "Answer":
+                answer_text = _collect_answer_text(payload.get("final_answer"))
+            elif "final_answer" in payload:
                 answer_text = _collect_answer_text(payload.get("final_answer"))
 
     expected_intent = str(case.get("expected_intent", "")).strip().upper()
