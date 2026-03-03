@@ -30,6 +30,7 @@ from agent.prompts import (
     ADVANCED_ANALYSIS_SYNTHESIS_TEMPLATE,
 )
 from core.oci_models import get_llm, get_embedding_model, get_oracle_vs
+from core.bm25_cache import get_bm25_cache
 from core.utils import get_console_logger, extract_json_from_text, docs_serializable
 from config import (
     AGENT_NAME,
@@ -37,6 +38,8 @@ from config import (
     ADVANCED_ANALYSIS_KB_TOP_K,
     ADVANCED_ANALYSIS_STEP_MAX_WORDS,
     EMBED_MODEL_TYPE,
+    ENABLE_HYBRID_SEARCH,
+    HYBRID_TOP_K,
     HYBRID_SESSION_TOP_K,
 )
 from config_private import CONNECT_ARGS
@@ -286,6 +289,45 @@ class AdvancedAnalysisRunner(Runnable):
     def _normalize_text(text: str) -> str:
         return " ".join((text or "").split()).strip().lower()
 
+    def _merge_docs(self, semantic_docs: list, bm25_docs: list) -> list:
+        """
+        Merge semantic and BM25 docs, deduplicating by normalized content.
+        """
+        merged = []
+        index_by_content = {}
+
+        for doc in semantic_docs:
+            content = self._normalize_text(doc.get("page_content", ""))
+            if not content:
+                continue
+            metadata = doc.get("metadata") or {}
+            metadata.setdefault("retrieval_type", "semantic")
+            doc["metadata"] = metadata
+            index_by_content[content] = len(merged)
+            merged.append(doc)
+
+        for doc in bm25_docs:
+            content = self._normalize_text(doc.get("page_content", ""))
+            if not content:
+                continue
+
+            if content in index_by_content:
+                existing = merged[index_by_content[content]]
+                existing_meta = existing.get("metadata") or {}
+                existing_type = existing_meta.get("retrieval_type", "semantic")
+                if existing_type != "semantic+bm25":
+                    existing_meta["retrieval_type"] = "semantic+bm25"
+                    existing["metadata"] = existing_meta
+                continue
+
+            metadata = doc.get("metadata") or {}
+            metadata.setdefault("retrieval_type", "bm25")
+            doc["metadata"] = metadata
+            index_by_content[content] = len(merged)
+            merged.append(doc)
+
+        return merged
+
     def _extend_with_neighbors(self, session_docs: list, chunk_numbers: list, radius: int = 1) -> list:
         expanded = set()
         total = len(session_docs)
@@ -337,7 +379,9 @@ class AdvancedAnalysisRunner(Runnable):
         return "\n\n".join(parts) if parts else "No KB evidence retrieved."
 
     @staticmethod
-    def _kb_search_docs(query: str, collection_name: str, embed_model_type: str, top_k: int) -> list:
+    def _kb_semantic_docs(
+        query: str, collection_name: str, embed_model_type: str, top_k: int
+    ) -> list:
         embed_model = get_embedding_model(embed_model_type)
         with oracledb.connect(**CONNECT_ARGS) as conn:
             v_store = get_oracle_vs(
@@ -355,12 +399,46 @@ class AdvancedAnalysisRunner(Runnable):
         return out
 
     @staticmethod
-    def _build_citations(selected_chunks: list, kb_docs: list) -> list:
+    def _kb_bm25_docs(query: str, collection_name: str, top_k: int) -> list:
+        cache = get_bm25_cache()
+        results = cache.search_docs(
+            query=query,
+            table_name=collection_name,
+            text_column="TEXT",
+            top_n=top_k,
+        )
+        out = []
+        for doc in results:
+            metadata = doc.get("metadata") or {}
+            metadata["retrieval_type"] = "bm25"
+            out.append({"page_content": doc.get("page_content", ""), "metadata": metadata})
+        return out
+
+    def _kb_search_docs(self, query: str, collection_name: str, embed_model_type: str, top_k: int) -> list:
+        semantic_docs = self._kb_semantic_docs(
+            query=query,
+            collection_name=collection_name,
+            embed_model_type=embed_model_type,
+            top_k=top_k,
+        )
+        if not ENABLE_HYBRID_SEARCH:
+            return semantic_docs
+
+        bm25_docs = self._kb_bm25_docs(
+            query=query,
+            collection_name=collection_name,
+            top_k=max(top_k, HYBRID_TOP_K),
+        )
+        return self._merge_docs(semantic_docs, bm25_docs)
+
+    @staticmethod
+    def _build_citations(step_no: int, selected_chunks: list, kb_docs: list) -> list:
         citations = []
         for _n, doc in selected_chunks:
             metadata = doc.get("metadata") or {}
             citations.append(
                 {
+                    "step": step_no,
                     "source": metadata.get("source", "uploaded.pdf"),
                     "page": metadata.get("page_label", ""),
                     "retrieval_type": "session_pdf",
@@ -370,6 +448,7 @@ class AdvancedAnalysisRunner(Runnable):
             metadata = doc.get("metadata") or {}
             citations.append(
                 {
+                    "step": step_no,
                     "source": metadata.get("source", "unknown"),
                     "page": metadata.get("page_label", ""),
                     "retrieval_type": metadata.get("retrieval_type", "semantic"),
@@ -543,7 +622,7 @@ class AdvancedAnalysisRunner(Runnable):
             step_outputs.append(
                 f"### {labels['step_title']} {step_no} - {section}\n{step_text}"
             )
-            all_citations.extend(self._build_citations(selected_chunks, kb_docs))
+            all_citations.extend(self._build_citations(step_no, selected_chunks, kb_docs))
 
         logger.info("AdvancedAnalysis steps generated. steps=%d", len(step_outputs))
         _emit_progress(configurable, 85, "Execution completed")
