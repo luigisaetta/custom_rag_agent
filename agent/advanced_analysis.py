@@ -44,6 +44,111 @@ from config_private import CONNECT_ARGS
 logger = get_console_logger()
 
 
+def _detect_question_language(user_request: str) -> str:
+    """
+    Lightweight language detection for user request.
+    Returns one of: it, en, fr, es.
+    """
+    text = f" {str(user_request or '').lower()} "
+
+    it_markers = [
+        " il ",
+        " lo ",
+        " la ",
+        " gli ",
+        " che ",
+        " della ",
+        " delle ",
+        " nel ",
+        " con ",
+        " per ",
+    ]
+    fr_markers = [
+        " le ",
+        " la ",
+        " les ",
+        " des ",
+        " dans ",
+        " avec ",
+        " pour ",
+        " est ",
+    ]
+    es_markers = [
+        " el ",
+        " la ",
+        " los ",
+        " las ",
+        " de ",
+        " del ",
+        " con ",
+        " para ",
+        " que ",
+    ]
+
+    it_score = sum(1 for m in it_markers if m in text)
+    fr_score = sum(1 for m in fr_markers if m in text)
+    es_score = sum(1 for m in es_markers if m in text)
+
+    if it_score >= max(fr_score, es_score) and it_score >= 2:
+        return "it"
+    if fr_score >= max(it_score, es_score) and fr_score >= 2:
+        return "fr"
+    if es_score >= max(it_score, fr_score) and es_score >= 2:
+        return "es"
+    return "en"
+
+
+def _resolve_output_language(main_language: str, user_request: str) -> str:
+    """
+    Resolve output language from runtime config and user request.
+    """
+    lang = str(main_language or "").strip().lower()
+    if lang in {"it", "italian", "italiano"}:
+        return "it"
+    if lang in {"en", "english"}:
+        return "en"
+    if lang in {"fr", "french", "francais", "français"}:
+        return "fr"
+    if lang in {"es", "spanish", "espanol", "español"}:
+        return "es"
+    if "same as the question" in lang or "same as question" in lang:
+        return _detect_question_language(user_request)
+    return _detect_question_language(user_request)
+
+
+def _get_report_labels(lang: str) -> dict:
+    """
+    Localized labels/messages for advanced-analysis report composition.
+    """
+    labels = {
+        "it": {
+            "step_title": "Passo",
+            "final_synthesis_title": "Sintesi Finale",
+            "no_plan": "L'analisi avanzata non puo essere eseguita perche non e stato generato alcun piano.",
+            "no_steps": "L'analisi avanzata non ha prodotto risultati intermedi da sintetizzare.",
+        },
+        "fr": {
+            "step_title": "Etape",
+            "final_synthesis_title": "Synthese Finale",
+            "no_plan": "L'analyse avancee n'a pas pu etre executee car aucun plan n'a ete genere.",
+            "no_steps": "L'analyse avancee n'a produit aucun resultat intermediaire a synthetiser.",
+        },
+        "es": {
+            "step_title": "Paso",
+            "final_synthesis_title": "Sintesis Final",
+            "no_plan": "El analisis avanzado no pudo ejecutarse porque no se genero ningun plan.",
+            "no_steps": "El analisis avanzado no genero resultados intermedios para sintetizar.",
+        },
+        "en": {
+            "step_title": "Step",
+            "final_synthesis_title": "Final Synthesis",
+            "no_plan": "Advanced analysis could not run because no execution plan was generated.",
+            "no_steps": "Advanced analysis did not produce step outputs to synthesize.",
+        },
+    }
+    return labels.get(lang, labels["en"])
+
+
 def _emit_progress(configurable: dict, percent: int, message: str) -> None:
     """
     Emit progress updates when a UI callback is provided.
@@ -310,6 +415,11 @@ class AdvancedAnalysisRunner(Runnable):
         plan = input.get("advanced_plan", [])
         user_request = input.get("user_request", "")
         configurable = (config or {}).get("configurable", {})
+        output_lang = _resolve_output_language(
+            configurable.get("main_language", ""),
+            user_request,
+        )
+        labels = _get_report_labels(output_lang)
         _emit_progress(configurable, 25, "Execution started")
         session_docs = list(configurable.get("session_pdf_docs", []))
         model_id = configurable.get("model_id")
@@ -331,7 +441,7 @@ class AdvancedAnalysisRunner(Runnable):
         if not plan:
             _emit_progress(configurable, 85, "Execution skipped (empty plan)")
             return {
-                "final_answer": "Advanced analysis could not run because no execution plan was generated.",
+                "final_answer": labels["no_plan"],
                 "citations": [],
                 "error": error,
             }
@@ -430,7 +540,9 @@ class AdvancedAnalysisRunner(Runnable):
                 f"Executed step {step_no}/{total_steps}",
             )
 
-            step_outputs.append(f"### Step {step_no} - {section}\n{step_text}")
+            step_outputs.append(
+                f"### {labels['step_title']} {step_no} - {section}\n{step_text}"
+            )
             all_citations.extend(self._build_citations(selected_chunks, kb_docs))
 
         logger.info("AdvancedAnalysis steps generated. steps=%d", len(step_outputs))
@@ -456,6 +568,11 @@ class AdvancedFinalSynthesis(Runnable):
         step_outputs = list(input.get("advanced_step_outputs", []))
         citations = list(input.get("citations", []))
         configurable = (config or {}).get("configurable", {})
+        output_lang = _resolve_output_language(
+            configurable.get("main_language", ""),
+            user_request,
+        )
+        labels = _get_report_labels(output_lang)
         _emit_progress(configurable, 90, "Final synthesis started")
         model_id = configurable.get("model_id")
         step_max_words = int(
@@ -466,7 +583,7 @@ class AdvancedFinalSynthesis(Runnable):
         if not step_outputs:
             _emit_progress(configurable, 100, "Final synthesis completed (no steps)")
             return {
-                "final_answer": "Advanced analysis did not produce step outputs to synthesize.",
+                "final_answer": labels["no_steps"],
                 "citations": citations,
                 "error": error,
             }
@@ -489,7 +606,7 @@ class AdvancedFinalSynthesis(Runnable):
 
         final_answer = (
             "\n\n".join(step_outputs).strip()
-            + "\n\n---\n\n## Final Synthesis\n"
+            + f"\n\n---\n\n## {labels['final_synthesis_title']}\n"
             + synthesis_text
         )
         logger.info("AdvancedFinalSynthesis generated.")

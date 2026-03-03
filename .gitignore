@@ -2,6 +2,7 @@ config_private.py
 config_private_luigi.py
 ai23.key
 ai23.key.pub
+wallet_atp/
 
 # Python cache/bytecode
 __pycache__/

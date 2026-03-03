@@ -128,3 +128,27 @@ def docs_serializable(docs: List[Document]) -> dict:
         for doc in docs
     ]
     return _docs_serializable
+
+
+def redact_agent_config_for_log(
+    agent_config: dict, max_docs_preview: int = 2, max_chars: int = 160
+) -> dict:
+    """
+    Build a redacted config for logging.
+    session_pdf_docs content is truncated to avoid logging full PDF chunks.
+    """
+    safe = dict(agent_config)
+    configurable = dict(safe.get("configurable", {}))
+    docs = list(configurable.get("session_pdf_docs", []) or [])
+
+    preview = []
+    for doc in docs[:max_docs_preview]:
+        metadata = dict((doc or {}).get("metadata", {}) or {})
+        text = str((doc or {}).get("page_content", "") or "")
+        if len(text) > max_chars:
+            text = text[:max_chars] + "..."
+        preview.append({"page_content": text, "metadata": metadata})
+
+    configurable["session_pdf_docs"] = {"count": len(docs), "preview": preview}
+    safe["configurable"] = configurable
+    return safe

@@ -21,6 +21,7 @@ RUN python -m pip install --upgrade pip && \
 # Copy application code
 COPY agent /app/agent
 COPY core /app/core
+COPY ui /app/ui
 COPY pages /app/pages
 COPY assistant_ui_langgraph.py /app/assistant_ui_langgraph.py
 COPY config.py /app/config.py
